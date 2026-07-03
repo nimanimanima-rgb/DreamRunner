@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://djsdacvhdtxjw"]
 
 [ext_resource type="Script" uid="uid://bile5wvaam3yq" path="res://scripts/player_controller.gd" id="1_elqb8"]
+[ext_resource type="Script" path="res://scripts/debug_hud.gd" id="2_debug"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_o2g3l"]
 size = Vector3(200, 1, 200)
@@ -52,11 +53,12 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4, 0)
 
 [node name="SpringArm3D" type="SpringArm3D" parent="Player/CameraPivot" unique_id=905739368]
 spring_length = 6.0
-margin = 0.0
+margin = 0.1
 
 [node name="Camera3D" type="Camera3D" parent="Player/CameraPivot/SpringArm3D" unique_id=1036950374]
 transform = Transform3D(1, 0, 0, 0, 0.9848077, 0.17364818, 0, -0.17364818, 0.9848077, 0, 1.5, 0)
 current = true
+fov = 78.0
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=350803342]
 transform = Transform3D(0.81915206, 0.4055798, -0.4055798, 0, 0.70710677, 0.70710677, 0.57357645, -0.579228, 0.579228, 0, 0, 0)
@@ -64,3 +66,27 @@ transform = Transform3D(0.81915206, 0.4055798, -0.4055798, 0, 0.70710677, 0.7071
 [node name="TestCube" type="MeshInstance3D" parent="." unique_id=976470427]
 transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 1, -10)
 mesh = SubResource("BoxMesh_wyco5")
+
+[node name="DebugHUD" type="CanvasLayer" parent="."]
+script = ExtResource("2_debug")
+player_path = NodePath("../Player")
+
+[node name="MarginContainer" type="MarginContainer" parent="DebugHUD"]
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 256.0
+offset_bottom = 124.0
+
+[node name="PanelContainer" type="PanelContainer" parent="DebugHUD/MarginContainer"]
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="DebugHUD/MarginContainer/PanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 8
+
+[node name="Readout" type="Label" parent="DebugHUD/MarginContainer/PanelContainer/MarginContainer"]
+layout_mode = 2
+text = "Speed: 0.0 m/s\nState: Airborne\nVertical velocity: 0.0 m/s\nSprinting: false"

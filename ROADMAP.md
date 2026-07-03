@@ -23,7 +23,7 @@ Goal: make movement feel good before anything else.
 - [x] Implement high jump
 - [ ] Implement smooth landing
 - [x] Implement third-person camera
-- [ ] Add speed/jump debugging values
+- [x] Add speed/jump debugging values
 
 ### Current Build Status
 
