@@ -88,7 +88,7 @@ terrain_manager_path = NodePath("../TerrainManager")
 offset_left = 16.0
 offset_top = 16.0
 offset_right = 256.0
-offset_bottom = 244.0
+offset_bottom = 268.0
 
 [node name="PanelContainer" type="PanelContainer" parent="DebugHUD/MarginContainer"]
 layout_mode = 2
@@ -102,4 +102,4 @@ theme_override_constants/margin_bottom = 8
 
 [node name="Readout" type="Label" parent="DebugHUD/MarginContainer/PanelContainer/MarginContainer"]
 layout_mode = 2
-text = "Speed: 0.0 m/s\nState: Airborne\nVertical velocity: 0.0 m/s\nSprinting: false\nGliding: false\nMode: Airborne\nClick to capture mouse\nChunk: (0, 0)\nActive chunks: 25"
+text = "Speed: 0.0 m/s\nState: Airborne\nVertical velocity: 0.0 m/s\nSprinting: false\nGliding: false\nMode: Airborne\nClick to capture mouse\nChunk: (0, 0)\nActive chunks: 25\nActive props: 0"

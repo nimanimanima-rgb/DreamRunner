@@ -11,9 +11,22 @@ extends Node3D
 @export var terrain_scale: float = 0.004
 @export var terrain_seed: int = 1337
 
+@export_group("Nature Props")
+@export_range(0, 8, 1) var trees_per_chunk: int = 2
+@export_range(0, 8, 1) var rocks_per_chunk: int = 1
+@export_range(0.0, 1.0, 0.01) var landmark_chance: float = 0.08
+@export var prop_seed: int = 4242
+@export var prop_border_margin: float = 14.0
+@export var minimum_prop_spacing: float = 12.0
+@export var spawn_clear_radius: float = 45.0
+
 @export_group("Placeholder Colors")
 @export var grass_color_a := Color(0.31, 0.48, 0.25)
 @export var grass_color_b := Color(0.28, 0.44, 0.23)
+@export var trunk_color := Color(0.35, 0.22, 0.13)
+@export var foliage_color := Color(0.24, 0.43, 0.25)
+@export var rock_color := Color(0.48, 0.46, 0.42)
+@export var landmark_color := Color(0.48, 0.36, 0.62)
 
 @onready var player: CharacterBody3D = get_node(player_path)
 
@@ -24,6 +37,21 @@ var terrain_noise: FastNoiseLite
 var terrain_zero_offset: float = 0.0
 var material_a: StandardMaterial3D
 var material_b: StandardMaterial3D
+var trunk_material: StandardMaterial3D
+var foliage_material: StandardMaterial3D
+var rock_material: StandardMaterial3D
+var landmark_material: StandardMaterial3D
+
+var trunk_mesh: CylinderMesh
+var foliage_mesh: SphereMesh
+var rock_mesh: SphereMesh
+var landmark_mesh: BoxMesh
+var trunk_shape: CylinderShape3D
+var rock_shape: BoxShape3D
+var landmark_shape: BoxShape3D
+
+var chunk_prop_counts: Dictionary = {}
+var active_prop_count: int = 0
 
 
 func _ready() -> void:
@@ -52,6 +80,41 @@ func create_shared_resources() -> void:
 
 	material_a = create_grass_material(grass_color_a)
 	material_b = create_grass_material(grass_color_b)
+	trunk_material = create_grass_material(trunk_color)
+	foliage_material = create_grass_material(foliage_color)
+	rock_material = create_grass_material(rock_color)
+	landmark_material = create_grass_material(landmark_color)
+
+	trunk_mesh = CylinderMesh.new()
+	trunk_mesh.top_radius = 0.35
+	trunk_mesh.bottom_radius = 0.45
+	trunk_mesh.height = 3.5
+	trunk_mesh.radial_segments = 8
+
+	foliage_mesh = SphereMesh.new()
+	foliage_mesh.radius = 1.6
+	foliage_mesh.height = 3.2
+	foliage_mesh.radial_segments = 10
+	foliage_mesh.rings = 5
+
+	rock_mesh = SphereMesh.new()
+	rock_mesh.radius = 1.1
+	rock_mesh.height = 1.4
+	rock_mesh.radial_segments = 8
+	rock_mesh.rings = 4
+
+	landmark_mesh = BoxMesh.new()
+	landmark_mesh.size = Vector3(2.5, 9.0, 2.5)
+
+	trunk_shape = CylinderShape3D.new()
+	trunk_shape.radius = 0.4
+	trunk_shape.height = 3.2
+
+	rock_shape = BoxShape3D.new()
+	rock_shape.size = Vector3(1.8, 1.0, 1.8)
+
+	landmark_shape = BoxShape3D.new()
+	landmark_shape.size = Vector3(2.5, 9.0, 2.5)
 
 
 func create_grass_material(color: Color) -> StandardMaterial3D:
@@ -111,8 +174,160 @@ func create_chunk(coordinate: Vector2i) -> void:
 	collision.shape = terrain_mesh.create_trimesh_shape()
 	chunk.add_child(collision)
 
+	var prop_count := create_chunk_props(chunk, coordinate)
+
 	add_child(chunk)
 	active_chunks[coordinate] = chunk
+	chunk_prop_counts[coordinate] = prop_count
+	active_prop_count += prop_count
+
+
+func create_chunk_props(chunk: StaticBody3D, coordinate: Vector2i) -> int:
+	var random := RandomNumberGenerator.new()
+	random.seed = get_chunk_prop_seed(coordinate)
+	var prop_count := 0
+	var placed_positions: Array[Vector2] = []
+
+	for tree_index in range(trees_per_chunk):
+		var tree_position := get_random_prop_position(random, coordinate, placed_positions)
+		if (
+			is_spawn_area_clear(coordinate, tree_position)
+			and is_prop_spacing_clear(tree_position, placed_positions)
+		):
+			create_tree(chunk, tree_position, tree_index)
+			placed_positions.append(Vector2(tree_position.x, tree_position.z))
+			prop_count += 1
+
+	for rock_index in range(rocks_per_chunk):
+		var rock_position := get_random_prop_position(random, coordinate, placed_positions)
+		if (
+			is_spawn_area_clear(coordinate, rock_position)
+			and is_prop_spacing_clear(rock_position, placed_positions)
+		):
+			create_rock(chunk, rock_position, rock_index, random)
+			placed_positions.append(Vector2(rock_position.x, rock_position.z))
+			prop_count += 1
+
+	if random.randf() < landmark_chance:
+		var landmark_position := get_random_prop_position(random, coordinate, placed_positions)
+		if (
+			is_spawn_area_clear(coordinate, landmark_position)
+			and is_prop_spacing_clear(landmark_position, placed_positions)
+		):
+			create_landmark(chunk, landmark_position)
+			placed_positions.append(Vector2(landmark_position.x, landmark_position.z))
+			prop_count += 1
+
+	return prop_count
+
+
+func get_chunk_prop_seed(coordinate: Vector2i) -> int:
+	var mixed_seed := prop_seed
+	mixed_seed ^= coordinate.x * 73856093
+	mixed_seed ^= coordinate.y * 19349663
+	return mixed_seed & 0x7fffffff
+
+
+func get_random_prop_position(
+	random: RandomNumberGenerator,
+	coordinate: Vector2i,
+	placed_positions: Array[Vector2]
+) -> Vector3:
+	var half_size := chunk_size * 0.5
+	var minimum := -half_size + prop_border_margin
+	var maximum := half_size - prop_border_margin
+	var candidate := Vector3.ZERO
+
+	for _attempt in range(8):
+		candidate.x = random.randf_range(minimum, maximum)
+		candidate.z = random.randf_range(minimum, maximum)
+		var world_x := coordinate.x * chunk_size + candidate.x
+		var world_z := coordinate.y * chunk_size + candidate.z
+		candidate.y = sample_height(world_x, world_z)
+		if is_spawn_area_clear(coordinate, candidate) and is_prop_spacing_clear(candidate, placed_positions):
+			return candidate
+
+	return candidate
+
+
+func is_spawn_area_clear(coordinate: Vector2i, local_position: Vector3) -> bool:
+	var world_x := coordinate.x * chunk_size + local_position.x
+	var world_z := coordinate.y * chunk_size + local_position.z
+	return Vector2(world_x, world_z).length() >= spawn_clear_radius
+
+
+func is_prop_spacing_clear(
+	local_position: Vector3,
+	placed_positions: Array[Vector2]
+) -> bool:
+	var candidate := Vector2(local_position.x, local_position.z)
+	for placed_position in placed_positions:
+		if candidate.distance_to(placed_position) < minimum_prop_spacing:
+			return false
+	return true
+
+
+func create_tree(chunk: StaticBody3D, base_position: Vector3, index: int) -> void:
+	var tree := Node3D.new()
+	tree.name = "Tree_%d" % index
+	tree.position = base_position
+
+	var trunk := MeshInstance3D.new()
+	trunk.name = "Trunk"
+	trunk.position = Vector3(0.0, 1.75, 0.0)
+	trunk.mesh = trunk_mesh
+	trunk.material_override = trunk_material
+	tree.add_child(trunk)
+
+	var foliage := MeshInstance3D.new()
+	foliage.name = "Foliage"
+	foliage.position = Vector3(0.0, 4.1, 0.0)
+	foliage.mesh = foliage_mesh
+	foliage.material_override = foliage_material
+	tree.add_child(foliage)
+	chunk.add_child(tree)
+
+	var collision := CollisionShape3D.new()
+	collision.name = "TreeCollision_%d" % index
+	collision.position = base_position + Vector3(0.0, 1.6, 0.0)
+	collision.shape = trunk_shape
+	chunk.add_child(collision)
+
+
+func create_rock(
+	chunk: StaticBody3D,
+	base_position: Vector3,
+	index: int,
+	random: RandomNumberGenerator
+) -> void:
+	var rock := MeshInstance3D.new()
+	rock.name = "Rock_%d" % index
+	rock.position = base_position + Vector3(0.0, 0.7, 0.0)
+	rock.rotation.y = random.randf_range(-PI, PI)
+	rock.mesh = rock_mesh
+	rock.material_override = rock_material
+	chunk.add_child(rock)
+
+	var collision := CollisionShape3D.new()
+	collision.name = "RockCollision_%d" % index
+	collision.position = base_position + Vector3(0.0, 0.5, 0.0)
+	collision.shape = rock_shape
+	chunk.add_child(collision)
+
+
+func create_landmark(chunk: StaticBody3D, base_position: Vector3) -> void:
+	var landmark := MeshInstance3D.new()
+	landmark.name = "Landmark"
+	landmark.position = base_position + Vector3(0.0, 4.5, 0.0)
+	landmark.mesh = landmark_mesh
+	landmark.material_override = landmark_material
+	chunk.add_child(landmark)
+
+	var collision := CollisionShape3D.new()
+	collision.name = "LandmarkCollision"
+	collision.position = base_position + Vector3(0.0, 4.5, 0.0)
+	collision.shape = landmark_shape
+	chunk.add_child(collision)
 
 
 func generate_chunk_mesh(coordinate: Vector2i) -> ArrayMesh:
@@ -201,6 +416,8 @@ func generate_chunk_mesh(coordinate: Vector2i) -> ArrayMesh:
 
 func remove_chunk(coordinate: Vector2i) -> void:
 	var chunk: StaticBody3D = active_chunks[coordinate]
+	active_prop_count -= chunk_prop_counts.get(coordinate, 0)
+	chunk_prop_counts.erase(coordinate)
 	active_chunks.erase(coordinate)
 	chunk.queue_free()
 
@@ -211,3 +428,7 @@ func get_current_chunk_coordinate() -> Vector2i:
 
 func get_active_chunk_count() -> int:
 	return active_chunks.size()
+
+
+func get_active_prop_count() -> int:
+	return active_prop_count

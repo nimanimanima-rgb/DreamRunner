@@ -26,9 +26,11 @@ func _process(_delta: float) -> void:
 	if terrain_manager != null:
 		var chunk_coordinate = terrain_manager.call("get_current_chunk_coordinate")
 		var chunk_count = terrain_manager.call("get_active_chunk_count")
+		var prop_count = terrain_manager.call("get_active_prop_count")
 		terrain_text = (
 			"\nChunk: (%d, %d)\n" % [chunk_coordinate.x, chunk_coordinate.y]
-			+ "Active chunks: %d" % chunk_count
+			+ "Active chunks: %d\n" % chunk_count
+			+ "Active props: %d" % prop_count
 		)
 	var movement_mode := "Gliding" if gliding else "Airborne"
 	if player.is_on_floor():
