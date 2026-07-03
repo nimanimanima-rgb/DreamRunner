@@ -8,7 +8,7 @@
 - [x] Create first commit
 - [x] Install Godot 4
 - [ ] Install/Open VS Code
-- [ ] Connect project to GitHub
+- [x] Connect project to GitHub
 - [x] Set up Codex
 
 ## Phase 1 — Movement Prototype
@@ -21,22 +21,26 @@ Goal: make movement feel good before anything else.
 - [x] Implement third-person movement
 - [x] Implement high-speed running
 - [x] Implement high jump
-- [ ] Implement smooth landing
+- [x] Implement smooth landing
 - [x] Implement third-person camera
 - [x] Add speed/jump debugging values
+- [x] Complete Movement Laboratory tuning pass
 
 ### Current Build Status
 
-The first playable movement prototype has been created. It includes a Godot 4 project, main scene, flat ground, basic player controller, WASD movement, sprint, high jump, and mouse camera.
+The first playable movement prototype and Movement Laboratory are complete. The current build includes high-speed running, high jump, smooth air control, glide/float movement, a debug HUD, an expanded handcrafted test area, browser export, and Web-compatible mouse capture.
 
 ### Next Milestone
 
-**Movement Laboratory:** tune running, jump, air control, camera, and debug UI.
+**Atmosphere Pass 01:** improve sky, lighting, fog, and color mood to make the scene feel more dreamlike. Continue using Godot-native settings and primitive placeholder geometry. Do not add procedural terrain or external assets yet.
 
 ## Phase 2 — First Playable Scene
 
 Goal: make one handcrafted area that feels satisfying.
 
+- [x] Expand the movement test area
+- [x] Add handcrafted ramps, platforms, and jump obstacles
+- [x] Add readable placeholder colors
 - [ ] Add rolling terrain
 - [ ] Add placeholder trees
 - [ ] Add placeholder rocks
@@ -47,9 +51,9 @@ Goal: make one handcrafted area that feels satisfying.
 
 ## Phase 3 — Dream Movement Polish
 
-- [ ] Add air control
-- [ ] Add glide/floating mechanic
-- [ ] Add camera FOV change at high speed
+- [x] Add air control
+- [x] Add glide/floating mechanic
+- [x] Add camera FOV change at high speed
 - [ ] Add landing effects
 - [ ] Add wind sound
 - [ ] Add footstep sound
@@ -65,9 +69,11 @@ Goal: make one handcrafted area that feels satisfying.
 
 ## Phase 5 — Browser Export
 
-- [ ] Export Godot project to HTML5/Web
+- [x] Export Godot project to HTML5/Web
+- [x] Complete browser export smoke test
+- [x] Fix Web mouse capture/pointer lock
 - [ ] Test browser performance
-- [ ] Fix input issues
+- [ ] Test remaining browser input behavior
 - [ ] Fix loading issues
 - [ ] Deploy prototype
 
