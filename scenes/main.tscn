@@ -10,7 +10,28 @@ size = Vector3(200, 1, 200)
 size = Vector3(200, 1, 200)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_rvslj"]
-albedo_color = Color(0.94509804, 0.14509805, 0.14509805, 1)
+albedo_color = Color(0.18, 0.42, 0.68, 1)
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ground"]
+albedo_color = Color(0.31, 0.48, 0.25, 1)
+roughness = 1.0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_obstacle"]
+albedo_color = Color(0.68, 0.32, 0.21, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_marker"]
+albedo_color = Color(0.83, 0.61, 0.2, 1)
+roughness = 0.85
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ramp"]
+albedo_color = Color(0.43, 0.3, 0.2, 1)
+roughness = 1.0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_platform"]
+albedo_color = Color(0.45, 0.46, 0.44, 1)
+roughness = 1.0
 
 [sub_resource type="CylinderMesh" id="CylinderMesh_elqb8"]
 top_radius = 0.4
@@ -23,6 +44,27 @@ size = Vector3(0.8, 1.8, 0.8)
 [sub_resource type="BoxMesh" id="BoxMesh_wyco5"]
 size = Vector3(2, 2, 2)
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_test_cube"]
+size = Vector3(2, 2, 2)
+
+[sub_resource type="BoxMesh" id="BoxMesh_ramp"]
+size = Vector3(10, 0.4, 12)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ramp"]
+size = Vector3(10, 0.4, 12)
+
+[sub_resource type="BoxMesh" id="BoxMesh_platform"]
+size = Vector3(8, 1, 8)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_platform"]
+size = Vector3(8, 1, 8)
+
+[sub_resource type="BoxMesh" id="BoxMesh_marker"]
+size = Vector3(1.5, 3, 1.5)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_marker"]
+size = Vector3(1.5, 3, 1.5)
+
 [node name="Main" type="Node3D" unique_id=860034473]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.1479523, 0, 2.2942595)
 
@@ -30,6 +72,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.1479523, 0, 2.2942595)
 
 [node name="GroundMesh" type="MeshInstance3D" parent="Ground" unique_id=2022928460]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+material_override = SubResource("StandardMaterial3D_ground")
 mesh = SubResource("BoxMesh_o2g3l")
 
 [node name="GroundCollision" type="CollisionShape3D" parent="Ground" unique_id=768800101]
@@ -52,20 +95,66 @@ shape = SubResource("BoxShape3D_0bbpv")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4, 0)
 
 [node name="SpringArm3D" type="SpringArm3D" parent="Player/CameraPivot" unique_id=905739368]
-spring_length = 6.0
+spring_length = 7.5
 margin = 0.1
 
 [node name="Camera3D" type="Camera3D" parent="Player/CameraPivot/SpringArm3D" unique_id=1036950374]
-transform = Transform3D(1, 0, 0, 0, 0.9848077, 0.17364818, 0, -0.17364818, 0.9848077, 0, 1.5, 0)
 current = true
 fov = 78.0
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=350803342]
 transform = Transform3D(0.81915206, 0.4055798, -0.4055798, 0, 0.70710677, 0.70710677, 0.57357645, -0.579228, 0.579228, 0, 0, 0)
 
-[node name="TestCube" type="MeshInstance3D" parent="." unique_id=976470427]
-transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 1, -10)
+[node name="TestCube" type="StaticBody3D" parent="." unique_id=976470427]
+position = Vector3(-8, 1, -12)
+
+[node name="Mesh" type="MeshInstance3D" parent="TestCube"]
+material_override = SubResource("StandardMaterial3D_obstacle")
 mesh = SubResource("BoxMesh_wyco5")
+
+[node name="Collision" type="CollisionShape3D" parent="TestCube"]
+shape = SubResource("BoxShape3D_test_cube")
+
+[node name="SideMarkerLeft" type="StaticBody3D" parent="."]
+position = Vector3(-7, 1.5, -19)
+
+[node name="Mesh" type="MeshInstance3D" parent="SideMarkerLeft"]
+material_override = SubResource("StandardMaterial3D_marker")
+mesh = SubResource("BoxMesh_marker")
+
+[node name="Collision" type="CollisionShape3D" parent="SideMarkerLeft"]
+shape = SubResource("BoxShape3D_marker")
+
+[node name="SideMarkerRight" type="StaticBody3D" parent="."]
+position = Vector3(7, 1.5, -19)
+
+[node name="Mesh" type="MeshInstance3D" parent="SideMarkerRight"]
+material_override = SubResource("StandardMaterial3D_marker")
+mesh = SubResource("BoxMesh_marker")
+
+[node name="Collision" type="CollisionShape3D" parent="SideMarkerRight"]
+shape = SubResource("BoxShape3D_marker")
+
+[node name="Ramp" type="StaticBody3D" parent="."]
+position = Vector3(0, 0.75, -31)
+rotation = Vector3(0.16, 0, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="Ramp"]
+material_override = SubResource("StandardMaterial3D_ramp")
+mesh = SubResource("BoxMesh_ramp")
+
+[node name="Collision" type="CollisionShape3D" parent="Ramp"]
+shape = SubResource("BoxShape3D_ramp")
+
+[node name="RaisedPlatform" type="StaticBody3D" parent="."]
+position = Vector3(0, 1.4, -40.9)
+
+[node name="Mesh" type="MeshInstance3D" parent="RaisedPlatform"]
+material_override = SubResource("StandardMaterial3D_platform")
+mesh = SubResource("BoxMesh_platform")
+
+[node name="Collision" type="CollisionShape3D" parent="RaisedPlatform"]
+shape = SubResource("BoxShape3D_platform")
 
 [node name="DebugHUD" type="CanvasLayer" parent="."]
 script = ExtResource("2_debug")
@@ -75,7 +164,7 @@ player_path = NodePath("../Player")
 offset_left = 16.0
 offset_top = 16.0
 offset_right = 256.0
-offset_bottom = 124.0
+offset_bottom = 148.0
 
 [node name="PanelContainer" type="PanelContainer" parent="DebugHUD/MarginContainer"]
 layout_mode = 2
@@ -89,4 +178,4 @@ theme_override_constants/margin_bottom = 8
 
 [node name="Readout" type="Label" parent="DebugHUD/MarginContainer/PanelContainer/MarginContainer"]
 layout_mode = 2
-text = "Speed: 0.0 m/s\nState: Airborne\nVertical velocity: 0.0 m/s\nSprinting: false"
+text = "Speed: 0.0 m/s\nState: Airborne\nVertical velocity: 0.0 m/s\nSprinting: false\nMode: Airborne"
