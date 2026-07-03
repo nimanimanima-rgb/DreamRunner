@@ -1,0 +1,105 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/player_controller.gd" id="1_player"]
+[ext_resource type="Script" path="res://scripts/terrain_chunk_manager.gd" id="2_terrain"]
+[ext_resource type="Script" path="res://scripts/debug_hud.gd" id="3_hud"]
+
+[sub_resource type="StandardMaterial3D" id="PlayerMaterial"]
+albedo_color = Color(0.18, 0.42, 0.68, 1)
+roughness = 0.8
+
+[sub_resource type="CylinderMesh" id="PlayerMesh"]
+top_radius = 0.4
+bottom_radius = 0.4
+height = 1.8
+
+[sub_resource type="CapsuleShape3D" id="PlayerShape"]
+radius = 0.4
+height = 1.8
+
+[sub_resource type="ProceduralSkyMaterial" id="SkyMaterial"]
+sky_top_color = Color(0.24, 0.42, 0.66, 1)
+sky_horizon_color = Color(0.84, 0.72, 0.69, 1)
+sky_curve = 0.12
+ground_bottom_color = Color(0.16, 0.2, 0.23, 1)
+ground_horizon_color = Color(0.62, 0.61, 0.55, 1)
+ground_curve = 0.08
+
+[sub_resource type="Sky" id="Sky"]
+sky_material = SubResource("SkyMaterial")
+
+[sub_resource type="Environment" id="Environment"]
+background_mode = 2
+sky = SubResource("Sky")
+ambient_light_source = 2
+ambient_light_color = Color(0.66, 0.72, 0.82, 1)
+ambient_light_energy = 0.55
+fog_enabled = true
+fog_light_color = Color(0.76, 0.71, 0.72, 1)
+fog_light_energy = 0.7
+fog_density = 0.0018
+fog_sky_affect = 0.35
+
+[node name="ProceduralTest" type="Node3D"]
+
+[node name="Player" type="CharacterBody3D" parent="."]
+script = ExtResource("1_player")
+
+[node name="BodyMesh" type="MeshInstance3D" parent="Player"]
+position = Vector3(0, 0.9, 0)
+material_override = SubResource("PlayerMaterial")
+mesh = SubResource("PlayerMesh")
+
+[node name="PlayerCollision" type="CollisionShape3D" parent="Player"]
+position = Vector3(0, 0.9, 0)
+shape = SubResource("PlayerShape")
+
+[node name="CameraPivot" type="Node3D" parent="Player"]
+position = Vector3(0, 1.4, 0)
+
+[node name="SpringArm3D" type="SpringArm3D" parent="Player/CameraPivot"]
+spring_length = 7.5
+margin = 0.1
+
+[node name="Camera3D" type="Camera3D" parent="Player/CameraPivot/SpringArm3D"]
+current = true
+fov = 78.0
+
+[node name="TerrainManager" type="Node3D" parent="."]
+script = ExtResource("2_terrain")
+player_path = NodePath("../Player")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-0.785398, -0.610865, 0)
+light_color = Color(1, 0.82, 0.68, 1)
+light_energy = 1.15
+shadow_enabled = true
+directional_shadow_max_distance = 180.0
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment")
+
+[node name="DebugHUD" type="CanvasLayer" parent="."]
+script = ExtResource("3_hud")
+player_path = NodePath("../Player")
+terrain_manager_path = NodePath("../TerrainManager")
+
+[node name="MarginContainer" type="MarginContainer" parent="DebugHUD"]
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 256.0
+offset_bottom = 244.0
+
+[node name="PanelContainer" type="PanelContainer" parent="DebugHUD/MarginContainer"]
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="DebugHUD/MarginContainer/PanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 8
+
+[node name="Readout" type="Label" parent="DebugHUD/MarginContainer/PanelContainer/MarginContainer"]
+layout_mode = 2
+text = "Speed: 0.0 m/s\nState: Airborne\nVertical velocity: 0.0 m/s\nSprinting: false\nGliding: false\nMode: Airborne\nClick to capture mouse\nChunk: (0, 0)\nActive chunks: 25"

@@ -61,6 +61,8 @@ Goal: make one handcrafted area that feels satisfying.
 
 ## Phase 4 — Procedural Terrain
 
+- [x] Start Procedural Terrain Spike 01 in a separate test scene
+- [ ] Validate chunk seams and Web performance
 - [ ] Generate terrain chunks
 - [ ] Spawn chunks around player
 - [ ] Remove distant chunks
