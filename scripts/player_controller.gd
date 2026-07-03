@@ -19,8 +19,8 @@ extends CharacterBody3D
 @export_group("Camera")
 @export var mouse_sensitivity: float = 0.003
 @export var rotation_smoothing: float = 12.0
-@export var min_pitch: float = -55.0
-@export var max_pitch: float = 25.0
+@export_range(-80.0, 0.0, 1.0) var min_pitch_degrees: float = -35.0
+@export_range(0.0, 30.0, 1.0) var max_pitch_degrees: float = 4.0
 @export var normal_fov: float = 78.0
 @export var sprint_fov: float = 84.0
 @export var fov_smoothing: float = 5.0
@@ -77,7 +77,11 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
 		target_yaw -= event.relative.x * mouse_sensitivity
 		target_pitch -= event.relative.y * mouse_sensitivity
-		target_pitch = clamp(target_pitch, deg_to_rad(min_pitch), deg_to_rad(max_pitch))
+		target_pitch = clamp(
+			target_pitch,
+			deg_to_rad(min_pitch_degrees),
+			deg_to_rad(max_pitch_degrees)
+		)
 
 
 func _process(delta: float) -> void:
