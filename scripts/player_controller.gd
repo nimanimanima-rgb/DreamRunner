@@ -11,6 +11,13 @@ extends CharacterBody3D
 @export var gravity_multiplier: float = 1.35
 @export var maximum_fall_speed: float = 42.0
 
+@export_group("Slope Influence")
+@export_range(0.0, 1.0, 0.01) var uphill_speed_penalty: float = 0.18
+@export_range(0.0, 1.0, 0.01) var downhill_speed_boost: float = 0.25
+@export_range(0.0, 4.0, 0.1) var slope_influence_strength: float = 2.0
+@export var max_slope_speed_bonus: float = 6.0
+@export var max_slope_speed_penalty: float = 4.0
+
 @export_group("Glide")
 @export var glide_gravity_multiplier: float = 0.25
 @export var glide_fall_speed: float = 7.0
@@ -24,11 +31,11 @@ extends CharacterBody3D
 @export var normal_fov: float = 78.0
 @export var sprint_fov: float = 84.0
 @export var fov_smoothing: float = 5.0
-@export var camera_follow_smoothing: float = 18.0
 @export var camera_vertical_smoothing: float = 7.0
 @export var camera_height: float = 1.4
 
 @onready var camera_pivot: Node3D = $CameraPivot
+@onready var spring_arm: SpringArm3D = $CameraPivot/SpringArm3D
 @onready var camera: Camera3D = $CameraPivot/SpringArm3D/Camera3D
 
 var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
@@ -54,6 +61,9 @@ func _ready() -> void:
 	target_yaw = yaw
 	camera_pivot.global_rotation = Vector3(pitch, yaw, 0.0)
 	camera.fov = normal_fov
+	# Never let the spring arm mistake the player capsule for scenery and
+	# collapse the camera during a fast orbit.
+	spring_arm.add_excluded_object(get_rid())
 	reset_physics_interpolation()
 	camera_pivot.reset_physics_interpolation()
 
@@ -76,6 +86,7 @@ func _input(event: InputEvent) -> void:
 
 	if event is InputEventMouseMotion and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
 		target_yaw -= event.relative.x * mouse_sensitivity
+		target_yaw = wrapf(target_yaw, -PI, PI)
 		target_pitch -= event.relative.y * mouse_sensitivity
 		target_pitch = clamp(
 			target_pitch,
@@ -87,6 +98,7 @@ func _input(event: InputEvent) -> void:
 func _process(delta: float) -> void:
 	var smoothing_weight := 1.0 - exp(-rotation_smoothing * delta)
 	yaw = lerp_angle(yaw, target_yaw, smoothing_weight)
+	yaw = wrapf(yaw, -PI, PI)
 	pitch = lerp_angle(pitch, target_pitch, smoothing_weight)
 	camera_pivot.global_rotation = Vector3(pitch, yaw, 0.0)
 
@@ -94,11 +106,12 @@ func _process(delta: float) -> void:
 	# physics position. This prevents fixed-tick stepping from shaking the camera.
 	var interpolated_player_position := get_global_transform_interpolated().origin
 	var camera_target := interpolated_player_position + Vector3.UP * camera_height
-	var follow_weight := 1.0 - exp(-camera_follow_smoothing * delta)
 	var vertical_weight := 1.0 - exp(-camera_vertical_smoothing * delta)
 	var camera_position := camera_pivot.global_position
-	camera_position.x = lerpf(camera_position.x, camera_target.x, follow_weight)
-	camera_position.z = lerpf(camera_position.z, camera_target.z, follow_weight)
+	# The interpolated target is already smooth. Exact horizontal tracking keeps
+	# the orbit centered during fast turns instead of sweeping through the player.
+	camera_position.x = camera_target.x
+	camera_position.z = camera_target.z
 	camera_position.y = lerpf(camera_position.y, camera_target.y, vertical_weight)
 	camera_pivot.global_position = camera_position
 
@@ -117,7 +130,9 @@ func _physics_process(delta: float) -> void:
 
 	var horizontal_velocity := Vector3(velocity.x, 0.0, velocity.z)
 	var desired_speed := target_speed
-	if not is_on_floor():
+	if is_on_floor():
+		desired_speed += get_slope_speed_adjustment(move_dir, target_speed)
+	else:
 		desired_speed = maxf(desired_speed, horizontal_velocity.length())
 	var target_velocity := move_dir * desired_speed
 
@@ -144,6 +159,36 @@ func _physics_process(delta: float) -> void:
 		velocity.y = jump_velocity
 
 	move_and_slide()
+
+
+func get_slope_speed_adjustment(move_direction: Vector3, base_speed: float) -> float:
+	if not is_on_floor() or move_direction == Vector3.ZERO:
+		return 0.0
+
+	var floor_normal := get_floor_normal()
+	var downhill_vector := Vector3(floor_normal.x, 0.0, floor_normal.z)
+	var slope_steepness := downhill_vector.length()
+	if slope_steepness < 0.001:
+		return 0.0
+
+	var downhill_direction := downhill_vector / slope_steepness
+	var travel_alignment := move_direction.dot(downhill_direction)
+	var influence := clampf(
+		travel_alignment * slope_steepness * slope_influence_strength,
+		-1.0,
+		1.0
+	)
+
+	if influence > 0.0:
+		return minf(
+			base_speed * downhill_speed_boost * influence,
+			max_slope_speed_bonus
+		)
+
+	return -minf(
+		base_speed * uphill_speed_penalty * absf(influence),
+		max_slope_speed_penalty
+	)
 
 
 func is_gliding() -> bool:
