@@ -41,24 +41,35 @@ func _ready() -> void:
 	camera_pivot.top_level = true
 	camera_pivot.global_position = initial_camera_position
 
-	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	# Web browsers only allow pointer lock after a user gesture, so the player
+	# clicks the game to capture the mouse instead of doing it automatically.
+	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	yaw = rotation.y
 	target_yaw = yaw
 	camera_pivot.global_rotation = Vector3(pitch, yaw, 0.0)
 	camera.fov = normal_fov
 
 
-func _unhandled_input(event: InputEvent) -> void:
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+		get_viewport().set_input_as_handled()
+		return
+
+	if (
+		event is InputEventMouseButton
+		and event.button_index == MOUSE_BUTTON_LEFT
+		and event.pressed
+		and Input.get_mouse_mode() != Input.MOUSE_MODE_CAPTURED
+	):
+		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+		get_viewport().set_input_as_handled()
+		return
+
 	if event is InputEventMouseMotion and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
 		target_yaw -= event.relative.x * mouse_sensitivity
 		target_pitch -= event.relative.y * mouse_sensitivity
 		target_pitch = clamp(target_pitch, deg_to_rad(min_pitch), deg_to_rad(max_pitch))
-
-	if event.is_action_pressed("ui_cancel"):
-		if Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
-			Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
-		else:
-			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
 
 func _process(delta: float) -> void:
