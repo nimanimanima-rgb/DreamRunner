@@ -10,10 +10,15 @@ func _process(_delta: float) -> void:
 	var horizontal_speed := Vector2(player.velocity.x, player.velocity.z).length()
 	var movement_state := "Grounded" if player.is_on_floor() else "Airborne"
 	var sprinting := Input.is_action_pressed("sprint") and horizontal_speed > 0.1
+	var gliding := (
+		not player.is_on_floor()
+		and player.velocity.y < 0.0
+		and Input.is_action_pressed("jump")
+	)
 	var mouse_hint := "Esc to release mouse"
 	if Input.get_mouse_mode() != Input.MOUSE_MODE_CAPTURED:
 		mouse_hint = "Click to capture mouse"
-	var movement_mode := "Airborne"
+	var movement_mode := "Gliding" if gliding else "Airborne"
 	if player.is_on_floor():
 		if horizontal_speed < 0.1:
 			movement_mode = "Idle"
@@ -27,6 +32,7 @@ func _process(_delta: float) -> void:
 		+ "State: %s\n" % movement_state
 		+ "Vertical velocity: %5.1f m/s\n" % player.velocity.y
 		+ "Sprinting: %s\n" % str(sprinting)
+		+ "Gliding: %s\n" % str(gliding)
 		+ "Mode: %s\n" % movement_mode
 		+ mouse_hint
 	)

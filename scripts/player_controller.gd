@@ -11,6 +11,11 @@ extends CharacterBody3D
 @export var gravity_multiplier: float = 1.35
 @export var maximum_fall_speed: float = 42.0
 
+@export_group("Glide")
+@export var glide_gravity_multiplier: float = 0.25
+@export var glide_fall_speed: float = 7.0
+@export var glide_deceleration: float = 24.0
+
 @export_group("Camera")
 @export var mouse_sensitivity: float = 0.003
 @export var rotation_smoothing: float = 12.0
@@ -117,12 +122,37 @@ func _physics_process(delta: float) -> void:
 	velocity.z = horizontal_velocity.z
 
 	if not is_on_floor():
-		velocity.y = maxf(
-			velocity.y - gravity * gravity_multiplier * delta,
-			-maximum_fall_speed
-		)
+		if is_gliding():
+			apply_glide(delta)
+		else:
+			velocity.y = maxf(
+				velocity.y - gravity * gravity_multiplier * delta,
+				-maximum_fall_speed
+			)
 
 	if Input.is_action_just_pressed("jump") and is_on_floor():
 		velocity.y = jump_velocity
 
 	move_and_slide()
+
+
+func is_gliding() -> bool:
+	return (
+		not is_on_floor()
+		and velocity.y < 0.0
+		and Input.is_action_pressed("jump")
+	)
+
+
+func apply_glide(delta: float) -> void:
+	if velocity.y < -glide_fall_speed:
+		velocity.y = move_toward(
+			velocity.y,
+			-glide_fall_speed,
+			glide_deceleration * delta
+		)
+	else:
+		velocity.y = maxf(
+			velocity.y - gravity * glide_gravity_multiplier * delta,
+			-glide_fall_speed
+		)
