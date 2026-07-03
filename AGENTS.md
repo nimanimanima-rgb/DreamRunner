@@ -39,6 +39,23 @@ Create a playable prototype with:
 - simple test terrain
 - browser-export-friendly structure
 
+## Current Build Status
+
+The first playable movement prototype has been created. The current build includes:
+
+- Godot 4 project
+- main scene
+- flat ground
+- basic player controller
+- WASD movement
+- sprint
+- high jump
+- mouse camera
+
+## Next Milestone
+
+**Movement Laboratory:** tune running, jump, air control, camera, and debug UI.
+
 ## Technical Preference
 
 Engine: Godot 4  

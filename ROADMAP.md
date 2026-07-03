@@ -6,24 +6,32 @@
 - [x] Create local project folder
 - [x] Initialize Git repository
 - [x] Create first commit
-- [ ] Install Godot 4
+- [x] Install Godot 4
 - [ ] Install/Open VS Code
 - [ ] Connect project to GitHub
-- [ ] Set up Codex
+- [x] Set up Codex
 
 ## Phase 1 — Movement Prototype
 
 Goal: make movement feel good before anything else.
 
-- [ ] Create Godot project
-- [ ] Create test level
-- [ ] Add placeholder player
-- [ ] Implement third-person movement
-- [ ] Implement high-speed running
-- [ ] Implement high jump
+- [x] Create Godot project
+- [x] Create test level
+- [x] Add placeholder player
+- [x] Implement third-person movement
+- [x] Implement high-speed running
+- [x] Implement high jump
 - [ ] Implement smooth landing
-- [ ] Implement third-person camera
+- [x] Implement third-person camera
 - [ ] Add speed/jump debugging values
+
+### Current Build Status
+
+The first playable movement prototype has been created. It includes a Godot 4 project, main scene, flat ground, basic player controller, WASD movement, sprint, high jump, and mouse camera.
+
+### Next Milestone
+
+**Movement Laboratory:** tune running, jump, air control, camera, and debug UI.
 
 ## Phase 2 — First Playable Scene
 

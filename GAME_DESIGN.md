@@ -96,6 +96,23 @@ The first playable version should include:
 - simple trees/rocks as placeholders
 - browser export test
 
+## Current Build Status
+
+The first playable movement prototype has been created. The current build includes:
+
+- Godot 4 project
+- main scene
+- flat ground
+- basic player controller
+- WASD movement
+- sprint
+- high jump
+- mouse camera
+
+## Next Milestone
+
+**Movement Laboratory:** tune running, jump, air control, camera, and debug UI.
+
 ## Later Features
 
 Possible future features:
