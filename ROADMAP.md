@@ -32,7 +32,7 @@ The first playable movement prototype and Movement Laboratory are complete. The 
 
 ### Next Milestone
 
-**Atmosphere Pass 01:** improve sky, lighting, fog, and color mood to make the scene feel more dreamlike. Continue using Godot-native settings and primitive placeholder geometry. Do not add procedural terrain or external assets yet.
+**Web Atmosphere Smoke Test:** verify the larger scene, procedural sky, fog, lighting, and shadows in the browser before adding more world detail.
 
 ## Phase 2 — First Playable Scene
 
@@ -44,9 +44,10 @@ Goal: make one handcrafted area that feels satisfying.
 - [ ] Add rolling terrain
 - [ ] Add placeholder trees
 - [ ] Add placeholder rocks
-- [ ] Add sky
-- [ ] Add lighting
-- [ ] Add fog
+- [x] Complete Atmosphere Pass 01
+- [x] Add procedural sky
+- [x] Improve lighting and ambient light
+- [x] Add distance fog
 - [ ] Tune movement and camera
 
 ## Phase 3 — Dream Movement Polish

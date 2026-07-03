@@ -45,6 +45,7 @@ func _ready() -> void:
 	var initial_camera_position := camera_pivot.global_position
 	camera_pivot.top_level = true
 	camera_pivot.global_position = initial_camera_position
+	camera_pivot.set_physics_interpolation_mode(Node.PHYSICS_INTERPOLATION_MODE_OFF)
 
 	# Web browsers only allow pointer lock after a user gesture, so the player
 	# clicks the game to capture the mouse instead of doing it automatically.
@@ -53,6 +54,8 @@ func _ready() -> void:
 	target_yaw = yaw
 	camera_pivot.global_rotation = Vector3(pitch, yaw, 0.0)
 	camera.fov = normal_fov
+	reset_physics_interpolation()
+	camera_pivot.reset_physics_interpolation()
 
 
 func _input(event: InputEvent) -> void:
@@ -81,10 +84,12 @@ func _process(delta: float) -> void:
 	var smoothing_weight := 1.0 - exp(-rotation_smoothing * delta)
 	yaw = lerp_angle(yaw, target_yaw, smoothing_weight)
 	pitch = lerp_angle(pitch, target_pitch, smoothing_weight)
-	rotation.y = yaw
 	camera_pivot.global_rotation = Vector3(pitch, yaw, 0.0)
 
-	var camera_target := global_position + Vector3.UP * camera_height
+	# Follow the position rendered between physics ticks, not the latest raw
+	# physics position. This prevents fixed-tick stepping from shaking the camera.
+	var interpolated_player_position := get_global_transform_interpolated().origin
+	var camera_target := interpolated_player_position + Vector3.UP * camera_height
 	var follow_weight := 1.0 - exp(-camera_follow_smoothing * delta)
 	var vertical_weight := 1.0 - exp(-camera_vertical_smoothing * delta)
 	var camera_position := camera_pivot.global_position
@@ -102,7 +107,8 @@ func _process(delta: float) -> void:
 
 func _physics_process(delta: float) -> void:
 	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
-	var move_dir := (global_transform.basis * Vector3(input_dir.x, 0.0, input_dir.y)).normalized()
+	var movement_basis := Basis(Vector3.UP, yaw)
+	var move_dir := (movement_basis * Vector3(input_dir.x, 0.0, input_dir.y)).normalized()
 	var target_speed := sprint_speed if Input.is_action_pressed("sprint") else walk_speed
 
 	var horizontal_velocity := Vector3(velocity.x, 0.0, velocity.z)

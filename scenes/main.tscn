@@ -4,10 +4,36 @@
 [ext_resource type="Script" path="res://scripts/debug_hud.gd" id="2_debug"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_o2g3l"]
-size = Vector3(400, 1, 400)
+size = Vector3(800, 1, 800)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_rvslj"]
-size = Vector3(400, 1, 400)
+size = Vector3(800, 1, 800)
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_dream"]
+sky_top_color = Color(0.24, 0.42, 0.66, 1)
+sky_horizon_color = Color(0.84, 0.72, 0.69, 1)
+sky_curve = 0.12
+ground_bottom_color = Color(0.16, 0.2, 0.23, 1)
+ground_horizon_color = Color(0.62, 0.61, 0.55, 1)
+ground_curve = 0.08
+sun_angle_max = 18.0
+sun_curve = 0.08
+
+[sub_resource type="Sky" id="Sky_dream"]
+sky_material = SubResource("ProceduralSkyMaterial_dream")
+
+[sub_resource type="Environment" id="Environment_dream"]
+background_mode = 2
+sky = SubResource("Sky_dream")
+ambient_light_source = 2
+ambient_light_color = Color(0.66, 0.72, 0.82, 1)
+ambient_light_energy = 0.55
+reflected_light_source = 2
+fog_enabled = true
+fog_light_color = Color(0.76, 0.71, 0.72, 1)
+fog_light_energy = 0.7
+fog_density = 0.0018
+fog_sky_affect = 0.35
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_rvslj"]
 albedo_color = Color(0.18, 0.42, 0.68, 1)
@@ -50,8 +76,9 @@ top_radius = 0.4
 bottom_radius = 0.4
 height = 1.8
 
-[sub_resource type="BoxShape3D" id="BoxShape3D_0bbpv"]
-size = Vector3(0.8, 1.8, 0.8)
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_player"]
+radius = 0.4
+height = 1.8
 
 [sub_resource type="BoxMesh" id="BoxMesh_wyco5"]
 size = Vector3(2, 2, 2)
@@ -134,8 +161,8 @@ material_override = SubResource("StandardMaterial3D_rvslj")
 mesh = SubResource("CylinderMesh_elqb8")
 
 [node name="PlayerCollision" type="CollisionShape3D" parent="Player" unique_id=1965612440]
-transform = Transform3D(0.8, 0, 0, 0, 0.8, 0, 0, 0, 0.8, 0, 0.9, 0)
-shape = SubResource("BoxShape3D_0bbpv")
+position = Vector3(0, 0.9, 0)
+shape = SubResource("CapsuleShape3D_player")
 
 [node name="CameraPivot" type="Node3D" parent="Player" unique_id=109119311]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4, 0)
@@ -150,9 +177,16 @@ fov = 78.0
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=350803342]
 transform = Transform3D(0.81915206, 0.4055798, -0.4055798, 0, 0.70710677, 0.70710677, 0.57357645, -0.579228, 0.579228, 0, 0, 0)
+light_color = Color(1, 0.82, 0.68, 1)
+light_energy = 1.15
+shadow_enabled = true
+directional_shadow_max_distance = 180.0
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_dream")
 
 [node name="TestCube" type="StaticBody3D" parent="." unique_id=976470427]
-position = Vector3(-8, 1, -12)
+position = Vector3(-25, 1, -35)
 
 [node name="Mesh" type="MeshInstance3D" parent="TestCube"]
 material_override = SubResource("StandardMaterial3D_obstacle")
@@ -162,7 +196,7 @@ mesh = SubResource("BoxMesh_wyco5")
 shape = SubResource("BoxShape3D_test_cube")
 
 [node name="SideMarkerLeft" type="StaticBody3D" parent="."]
-position = Vector3(-7, 1.5, -19)
+position = Vector3(-18, 1.5, -55)
 
 [node name="Mesh" type="MeshInstance3D" parent="SideMarkerLeft"]
 material_override = SubResource("StandardMaterial3D_marker")
@@ -172,7 +206,7 @@ mesh = SubResource("BoxMesh_marker")
 shape = SubResource("BoxShape3D_marker")
 
 [node name="SideMarkerRight" type="StaticBody3D" parent="."]
-position = Vector3(7, 1.5, -19)
+position = Vector3(18, 1.5, -55)
 
 [node name="Mesh" type="MeshInstance3D" parent="SideMarkerRight"]
 material_override = SubResource("StandardMaterial3D_marker")
@@ -182,7 +216,7 @@ mesh = SubResource("BoxMesh_marker")
 shape = SubResource("BoxShape3D_marker")
 
 [node name="Ramp" type="StaticBody3D" parent="."]
-position = Vector3(0, 0.75, -31)
+position = Vector3(0, 0.75, -90)
 rotation = Vector3(0.16, 0, 0)
 
 [node name="Mesh" type="MeshInstance3D" parent="Ramp"]
@@ -193,7 +227,7 @@ mesh = SubResource("BoxMesh_ramp")
 shape = SubResource("BoxShape3D_ramp")
 
 [node name="RaisedPlatform" type="StaticBody3D" parent="."]
-position = Vector3(0, 1.4, -40.9)
+position = Vector3(0, 1.4, -99.9)
 
 [node name="Mesh" type="MeshInstance3D" parent="RaisedPlatform"]
 material_override = SubResource("StandardMaterial3D_platform")
@@ -205,7 +239,7 @@ shape = SubResource("BoxShape3D_platform")
 [node name="MovementCourse" type="Node3D" parent="."]
 
 [node name="EastRamp" type="StaticBody3D" parent="MovementCourse"]
-position = Vector3(60, 0.75, -20)
+position = Vector3(140, 0.75, -50)
 rotation = Vector3(0.16, -1.5708, 0)
 
 [node name="Mesh" type="MeshInstance3D" parent="MovementCourse/EastRamp"]
@@ -216,7 +250,7 @@ mesh = SubResource("BoxMesh_ramp")
 shape = SubResource("BoxShape3D_ramp")
 
 [node name="WestRamp" type="StaticBody3D" parent="MovementCourse"]
-position = Vector3(-60, 0.75, 35)
+position = Vector3(-145, 0.75, 80)
 rotation = Vector3(0.16, 1.5708, 0)
 
 [node name="Mesh" type="MeshInstance3D" parent="MovementCourse/WestRamp"]
@@ -227,7 +261,7 @@ mesh = SubResource("BoxMesh_ramp")
 shape = SubResource("BoxShape3D_ramp")
 
 [node name="SouthRamp" type="StaticBody3D" parent="MovementCourse"]
-position = Vector3(20, 0.75, 75)
+position = Vector3(50, 0.75, 175)
 rotation = Vector3(0.16, 3.14159, 0)
 
 [node name="Mesh" type="MeshInstance3D" parent="MovementCourse/SouthRamp"]
@@ -238,7 +272,7 @@ mesh = SubResource("BoxMesh_ramp")
 shape = SubResource("BoxShape3D_ramp")
 
 [node name="TallPillarA" type="StaticBody3D" parent="MovementCourse"]
-position = Vector3(35, 3, -70)
+position = Vector3(90, 3, -170)
 
 [node name="Mesh" type="MeshInstance3D" parent="MovementCourse/TallPillarA"]
 material_override = SubResource("StandardMaterial3D_tall")
@@ -248,7 +282,7 @@ mesh = SubResource("BoxMesh_tall_pillar_a")
 shape = SubResource("BoxShape3D_tall_pillar_a")
 
 [node name="TallPillarB" type="StaticBody3D" parent="MovementCourse"]
-position = Vector3(-50, 4, -55)
+position = Vector3(-130, 4, -140)
 
 [node name="Mesh" type="MeshInstance3D" parent="MovementCourse/TallPillarB"]
 material_override = SubResource("StandardMaterial3D_tall")
@@ -258,7 +292,7 @@ mesh = SubResource("BoxMesh_tall_pillar_b")
 shape = SubResource("BoxShape3D_tall_pillar_b")
 
 [node name="TallStep" type="StaticBody3D" parent="MovementCourse"]
-position = Vector3(-25, 2.5, 75)
+position = Vector3(-70, 2.5, 180)
 
 [node name="Mesh" type="MeshInstance3D" parent="MovementCourse/TallStep"]
 material_override = SubResource("StandardMaterial3D_obstacle")
@@ -268,7 +302,7 @@ mesh = SubResource("BoxMesh_tall_step")
 shape = SubResource("BoxShape3D_tall_step")
 
 [node name="NorthHurdle" type="StaticBody3D" parent="MovementCourse"]
-position = Vector3(-20, 1, -95)
+position = Vector3(-50, 1, -230)
 rotation = Vector3(0, 0.3, 0)
 
 [node name="Mesh" type="MeshInstance3D" parent="MovementCourse/NorthHurdle"]
@@ -279,7 +313,7 @@ mesh = SubResource("BoxMesh_hurdle")
 shape = SubResource("BoxShape3D_hurdle")
 
 [node name="EastHurdle" type="StaticBody3D" parent="MovementCourse"]
-position = Vector3(90, 1, 20)
+position = Vector3(220, 1, 60)
 rotation = Vector3(0, 1.15, 0)
 
 [node name="Mesh" type="MeshInstance3D" parent="MovementCourse/EastHurdle"]
@@ -290,7 +324,7 @@ mesh = SubResource("BoxMesh_hurdle")
 shape = SubResource("BoxShape3D_hurdle")
 
 [node name="WestColumn" type="StaticBody3D" parent="MovementCourse"]
-position = Vector3(-90, 2.5, -10)
+position = Vector3(-220, 2.5, -40)
 
 [node name="Mesh" type="MeshInstance3D" parent="MovementCourse/WestColumn"]
 material_override = SubResource("StandardMaterial3D_column")
@@ -300,7 +334,7 @@ mesh = SubResource("CylinderMesh_course_column")
 shape = SubResource("CylinderShape3D_course_column")
 
 [node name="SouthColumn" type="StaticBody3D" parent="MovementCourse"]
-position = Vector3(70, 2.5, 65)
+position = Vector3(170, 2.5, 170)
 
 [node name="Mesh" type="MeshInstance3D" parent="MovementCourse/SouthColumn"]
 material_override = SubResource("StandardMaterial3D_column")
