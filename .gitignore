@@ -1,0 +1,15 @@
+# Godot cache/imported files
+.godot/
+.import/
+
+# Export builds
+exports/*
+!exports/.gitkeep
+
+# Temporary files
+*.tmp
+*.temp
+
+# OS junk
+.DS_Store
+Thumbs.db
