@@ -4,6 +4,7 @@
 [ext_resource type="Script" uid="uid://c3d0yp7lwq8fe" path="res://scripts/terrain_chunk_manager.gd" id="2_terrain"]
 [ext_resource type="Script" uid="uid://bnv4pyccmhbrw" path="res://scripts/debug_hud.gd" id="3_hud"]
 [ext_resource type="Script" path="res://scripts/start_overlay.gd" id="4_overlay"]
+[ext_resource type="Script" path="res://scripts/dream_atmosphere.gd" id="5_atmosphere"]
 
 [sub_resource type="StandardMaterial3D" id="PlayerMaterial"]
 albedo_color = Color(0.18, 0.42, 0.68, 1)
@@ -80,11 +81,16 @@ directional_shadow_max_distance = 180.0
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment")
 
+[node name="DreamAtmosphere" type="MultiMeshInstance3D" parent="."]
+script = ExtResource("5_atmosphere")
+player_path = NodePath("../Player")
+
 [node name="DebugHUD" type="CanvasLayer" parent="."]
 visible = false
 script = ExtResource("3_hud")
 player_path = NodePath("../Player")
 terrain_manager_path = NodePath("../TerrainManager")
+atmosphere_path = NodePath("../DreamAtmosphere")
 
 [node name="MarginContainer" type="MarginContainer" parent="DebugHUD"]
 offset_left = 16.0

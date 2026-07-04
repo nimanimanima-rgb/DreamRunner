@@ -32,6 +32,8 @@ The first playable movement prototype and Movement Laboratory are complete. The 
 
 `Game.tscn` is now the main playable scene and launches when the project runs. It contains the procedural world setup promoted from the terrain prototype. `Main.tscn` remains available as the stable Movement Laboratory backup, and `ProceduralTest.tscn` remains available as the procedural terrain sandbox.
 
+World Life Pass 01 adds lightweight drifting dream motes, subtle canopy and landmark motion, more organic prop variation and clusters, and softly glowing distant landmarks.
+
 ### Next Milestone
 
 **Web Atmosphere Smoke Test:** verify the larger scene, procedural sky, fog, lighting, and shadows in the browser before adding more world detail.

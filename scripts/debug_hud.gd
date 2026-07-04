@@ -2,11 +2,15 @@ extends CanvasLayer
 
 @export var player_path: NodePath
 @export var terrain_manager_path: NodePath
+@export var atmosphere_path: NodePath
 
 @onready var player: CharacterBody3D = get_node(player_path)
 @onready var readout: Label = $MarginContainer/PanelContainer/MarginContainer/Readout
 @onready var terrain_manager: Node = (
 	null if terrain_manager_path.is_empty() else get_node_or_null(terrain_manager_path)
+)
+@onready var atmosphere: Node = (
+	null if atmosphere_path.is_empty() else get_node_or_null(atmosphere_path)
 )
 
 
@@ -35,6 +39,8 @@ func _process(_delta: float) -> void:
 			+ "Active chunks: %d\n" % chunk_count
 			+ "Active props: %d" % prop_count
 		)
+		if atmosphere != null:
+			terrain_text += "\nDream motes: %d" % atmosphere.call("get_active_mote_count")
 	var movement_mode := "Gliding" if gliding else "Airborne"
 	if player.is_on_floor():
 		if horizontal_speed < 0.1:

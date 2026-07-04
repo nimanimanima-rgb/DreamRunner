@@ -14,7 +14,8 @@ extends Node3D
 @export_group("Nature Props")
 @export_range(0, 8, 1) var trees_per_chunk: int = 2
 @export_range(0, 8, 1) var rocks_per_chunk: int = 1
-@export_range(0.0, 1.0, 0.01) var landmark_chance: float = 0.08
+@export_range(0.0, 1.0, 0.01) var landmark_chance: float = 0.1
+@export_range(0.0, 0.5, 0.01) var tree_cluster_chance: float = 0.18
 @export var prop_seed: int = 4242
 @export var prop_border_margin: float = 14.0
 @export var minimum_prop_spacing: float = 12.0
@@ -41,6 +42,9 @@ var trunk_material: StandardMaterial3D
 var foliage_material: StandardMaterial3D
 var rock_material: StandardMaterial3D
 var landmark_material: StandardMaterial3D
+var foliage_materials: Array[StandardMaterial3D] = []
+var rock_materials: Array[StandardMaterial3D] = []
+var landmark_materials: Array[StandardMaterial3D] = []
 
 var trunk_mesh: CylinderMesh
 var foliage_mesh: SphereMesh
@@ -52,6 +56,9 @@ var landmark_shape: BoxShape3D
 
 var chunk_prop_counts: Dictionary = {}
 var active_prop_count: int = 0
+var animated_foliage: Array[Dictionary] = []
+var animated_landmarks: Array[Dictionary] = []
+var animation_time: float = 0.0
 
 
 func _ready() -> void:
@@ -60,11 +67,14 @@ func _ready() -> void:
 	update_chunks()
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	var player_chunk := world_to_chunk(player.global_position)
 	if player_chunk != current_chunk:
 		current_chunk = player_chunk
 		update_chunks()
+
+	animation_time += delta
+	animate_world_life()
 
 
 func create_shared_resources() -> void:
@@ -84,6 +94,21 @@ func create_shared_resources() -> void:
 	foliage_material = create_grass_material(foliage_color)
 	rock_material = create_grass_material(rock_color)
 	landmark_material = create_grass_material(landmark_color)
+	foliage_materials = [
+		foliage_material,
+		create_grass_material(foliage_color.lightened(0.08)),
+		create_grass_material(foliage_color.darkened(0.07)),
+	]
+	rock_materials = [
+		rock_material,
+		create_grass_material(rock_color.lightened(0.07)),
+		create_grass_material(rock_color.lerp(Color(0.42, 0.39, 0.48), 0.35)),
+	]
+	landmark_materials = [
+		create_landmark_material(landmark_color),
+		create_landmark_material(Color(0.38, 0.52, 0.7)),
+		create_landmark_material(Color(0.63, 0.4, 0.58)),
+	]
 
 	trunk_mesh = CylinderMesh.new()
 	trunk_mesh.top_radius = 0.35
@@ -121,6 +146,14 @@ func create_grass_material(color: Color) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
 	material.albedo_color = color
 	material.roughness = 1.0
+	return material
+
+
+func create_landmark_material(color: Color) -> StandardMaterial3D:
+	var material := create_grass_material(color)
+	material.emission_enabled = true
+	material.emission = color * 0.55
+	material.emission_energy_multiplier = 0.65
 	return material
 
 
@@ -194,9 +227,23 @@ func create_chunk_props(chunk: StaticBody3D, coordinate: Vector2i) -> int:
 			is_spawn_area_clear(coordinate, tree_position)
 			and is_prop_spacing_clear(tree_position, placed_positions)
 		):
-			create_tree(chunk, tree_position, tree_index)
+			create_tree(chunk, tree_position, tree_index, random)
 			placed_positions.append(Vector2(tree_position.x, tree_position.z))
 			prop_count += 1
+
+			if random.randf() < tree_cluster_chance:
+				var companion_position := get_tree_companion_position(
+					random,
+					coordinate,
+					tree_position
+				)
+				if (
+					is_spawn_area_clear(coordinate, companion_position)
+					and is_prop_spacing_clear(companion_position, placed_positions, 4.5)
+				):
+					create_tree(chunk, companion_position, tree_index + 100, random, 0.72)
+					placed_positions.append(Vector2(companion_position.x, companion_position.z))
+					prop_count += 1
 
 	for rock_index in range(rocks_per_chunk):
 		var rock_position := get_random_prop_position(random, coordinate, placed_positions)
@@ -214,7 +261,7 @@ func create_chunk_props(chunk: StaticBody3D, coordinate: Vector2i) -> int:
 			is_spawn_area_clear(coordinate, landmark_position)
 			and is_prop_spacing_clear(landmark_position, placed_positions)
 		):
-			create_landmark(chunk, landmark_position)
+			create_landmark(chunk, landmark_position, random)
 			placed_positions.append(Vector2(landmark_position.x, landmark_position.z))
 			prop_count += 1
 
@@ -250,6 +297,24 @@ func get_random_prop_position(
 	return candidate
 
 
+func get_tree_companion_position(
+	random: RandomNumberGenerator,
+	coordinate: Vector2i,
+	main_position: Vector3
+) -> Vector3:
+	var angle := random.randf_range(0.0, TAU)
+	var distance := random.randf_range(5.0, 8.5)
+	var companion := main_position + Vector3(cos(angle) * distance, 0.0, sin(angle) * distance)
+	var half_size := chunk_size * 0.5 - prop_border_margin
+	companion.x = clampf(companion.x, -half_size, half_size)
+	companion.z = clampf(companion.z, -half_size, half_size)
+	companion.y = sample_height(
+		coordinate.x * chunk_size + companion.x,
+		coordinate.y * chunk_size + companion.z
+	)
+	return companion
+
+
 func is_spawn_area_clear(coordinate: Vector2i, local_position: Vector3) -> bool:
 	var world_x := coordinate.x * chunk_size + local_position.x
 	var world_z := coordinate.y * chunk_size + local_position.z
@@ -258,19 +323,30 @@ func is_spawn_area_clear(coordinate: Vector2i, local_position: Vector3) -> bool:
 
 func is_prop_spacing_clear(
 	local_position: Vector3,
-	placed_positions: Array[Vector2]
+	placed_positions: Array[Vector2],
+	spacing: float = -1.0
 ) -> bool:
+	var required_spacing := minimum_prop_spacing if spacing < 0.0 else spacing
 	var candidate := Vector2(local_position.x, local_position.z)
 	for placed_position in placed_positions:
-		if candidate.distance_to(placed_position) < minimum_prop_spacing:
+		if candidate.distance_to(placed_position) < required_spacing:
 			return false
 	return true
 
 
-func create_tree(chunk: StaticBody3D, base_position: Vector3, index: int) -> void:
+func create_tree(
+	chunk: StaticBody3D,
+	base_position: Vector3,
+	index: int,
+	random: RandomNumberGenerator,
+	scale_multiplier: float = 1.0
+) -> void:
+	var tree_scale := random.randf_range(0.82, 1.28) * scale_multiplier
 	var tree := Node3D.new()
 	tree.name = "Tree_%d" % index
 	tree.position = base_position
+	tree.rotation.y = random.randf_range(-PI, PI)
+	tree.scale = Vector3.ONE * tree_scale
 
 	var trunk := MeshInstance3D.new()
 	trunk.name = "Trunk"
@@ -283,14 +359,20 @@ func create_tree(chunk: StaticBody3D, base_position: Vector3, index: int) -> voi
 	foliage.name = "Foliage"
 	foliage.position = Vector3(0.0, 4.1, 0.0)
 	foliage.mesh = foliage_mesh
-	foliage.material_override = foliage_material
+	foliage.material_override = foliage_materials[random.randi_range(0, foliage_materials.size() - 1)]
 	tree.add_child(foliage)
 	chunk.add_child(tree)
+	animated_foliage.append({
+		"node": foliage,
+		"phase": random.randf_range(0.0, TAU),
+		"strength": random.randf_range(0.018, 0.045),
+	})
 
 	var collision := CollisionShape3D.new()
 	collision.name = "TreeCollision_%d" % index
-	collision.position = base_position + Vector3(0.0, 1.6, 0.0)
+	collision.position = base_position + Vector3(0.0, 1.6 * tree_scale, 0.0)
 	collision.shape = trunk_shape
+	collision.scale = Vector3.ONE * tree_scale
 	chunk.add_child(collision)
 
 
@@ -301,33 +383,76 @@ func create_rock(
 	random: RandomNumberGenerator
 ) -> void:
 	var rock := MeshInstance3D.new()
+	var rock_scale := Vector3(
+		random.randf_range(0.72, 1.35),
+		random.randf_range(0.65, 1.2),
+		random.randf_range(0.72, 1.35)
+	)
 	rock.name = "Rock_%d" % index
-	rock.position = base_position + Vector3(0.0, 0.7, 0.0)
+	rock.position = base_position + Vector3(0.0, 0.7 * rock_scale.y, 0.0)
 	rock.rotation.y = random.randf_range(-PI, PI)
+	rock.rotation.z = random.randf_range(-0.12, 0.12)
+	rock.scale = rock_scale
 	rock.mesh = rock_mesh
-	rock.material_override = rock_material
+	rock.material_override = rock_materials[random.randi_range(0, rock_materials.size() - 1)]
 	chunk.add_child(rock)
 
 	var collision := CollisionShape3D.new()
 	collision.name = "RockCollision_%d" % index
-	collision.position = base_position + Vector3(0.0, 0.5, 0.0)
+	collision.position = base_position + Vector3(0.0, 0.5 * rock_scale.y, 0.0)
 	collision.shape = rock_shape
+	collision.scale = rock_scale
 	chunk.add_child(collision)
 
 
-func create_landmark(chunk: StaticBody3D, base_position: Vector3) -> void:
+func create_landmark(
+	chunk: StaticBody3D,
+	base_position: Vector3,
+	random: RandomNumberGenerator
+) -> void:
+	var landmark_scale := Vector3(
+		random.randf_range(0.65, 1.25),
+		random.randf_range(1.25, 2.25),
+		random.randf_range(0.65, 1.25)
+	)
 	var landmark := MeshInstance3D.new()
 	landmark.name = "Landmark"
-	landmark.position = base_position + Vector3(0.0, 4.5, 0.0)
+	landmark.position = base_position + Vector3(0.0, 4.5 * landmark_scale.y, 0.0)
+	landmark.rotation.y = random.randf_range(-PI, PI)
+	landmark.scale = landmark_scale
 	landmark.mesh = landmark_mesh
-	landmark.material_override = landmark_material
+	landmark.material_override = landmark_materials[
+		random.randi_range(0, landmark_materials.size() - 1)
+	]
 	chunk.add_child(landmark)
+	animated_landmarks.append({
+		"node": landmark,
+		"phase": random.randf_range(0.0, TAU),
+		"base_scale": landmark_scale,
+	})
 
 	var collision := CollisionShape3D.new()
 	collision.name = "LandmarkCollision"
-	collision.position = base_position + Vector3(0.0, 4.5, 0.0)
+	collision.position = base_position + Vector3(0.0, 4.5 * landmark_scale.y, 0.0)
 	collision.shape = landmark_shape
+	collision.scale = landmark_scale
 	chunk.add_child(collision)
+
+
+func animate_world_life() -> void:
+	for entry in animated_foliage:
+		var foliage: MeshInstance3D = entry["node"] as MeshInstance3D
+		var phase: float = float(entry["phase"])
+		var strength: float = float(entry["strength"])
+		var sway: float = sin(animation_time * 0.7 + phase) * strength
+		foliage.rotation = Vector3(sway * 0.55, 0.0, sway)
+
+	for entry in animated_landmarks:
+		var landmark: MeshInstance3D = entry["node"] as MeshInstance3D
+		var phase: float = float(entry["phase"])
+		var pulse: float = 1.0 + sin(animation_time * 0.55 + phase) * 0.035
+		var base_scale: Vector3 = entry["base_scale"]
+		landmark.scale = Vector3(base_scale.x * pulse, base_scale.y, base_scale.z * pulse)
 
 
 func generate_chunk_mesh(coordinate: Vector2i) -> ArrayMesh:
@@ -416,10 +541,23 @@ func generate_chunk_mesh(coordinate: Vector2i) -> ArrayMesh:
 
 func remove_chunk(coordinate: Vector2i) -> void:
 	var chunk: StaticBody3D = active_chunks[coordinate]
+	remove_chunk_animation_entries(chunk)
 	active_prop_count -= chunk_prop_counts.get(coordinate, 0)
 	chunk_prop_counts.erase(coordinate)
 	active_chunks.erase(coordinate)
 	chunk.queue_free()
+
+
+func remove_chunk_animation_entries(chunk: StaticBody3D) -> void:
+	for index in range(animated_foliage.size() - 1, -1, -1):
+		var foliage: Node = animated_foliage[index]["node"]
+		if chunk.is_ancestor_of(foliage):
+			animated_foliage.remove_at(index)
+
+	for index in range(animated_landmarks.size() - 1, -1, -1):
+		var landmark: Node = animated_landmarks[index]["node"]
+		if chunk.is_ancestor_of(landmark):
+			animated_landmarks.remove_at(index)
 
 
 func get_current_chunk_coordinate() -> Vector2i:
