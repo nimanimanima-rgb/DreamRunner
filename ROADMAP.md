@@ -34,6 +34,8 @@ The first playable movement prototype and Movement Laboratory are complete. The 
 
 World Life Pass 01 adds lightweight drifting dream motes, subtle canopy and landmark motion, more organic prop variation and clusters, and softly glowing distant landmarks.
 
+Dream Trail / Destination Pass 01 adds a soft exploration loop: follow a distant dream signal, reach it, and watch a new destination appear farther through the procedural world.
+
 ### Next Milestone
 
 **Web Atmosphere Smoke Test:** verify the larger scene, procedural sky, fog, lighting, and shadows in the browser before adding more world detail.
