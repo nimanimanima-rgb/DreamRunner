@@ -1130,3 +1130,62 @@ func get_active_giant_landmark_count() -> int:
 
 func get_far_landmark_proxy_count() -> int:
 	return far_landmark_proxies.size()
+
+
+func get_nearest_giant_landmark_position(
+	world_position: Vector3,
+	maximum_distance: float
+) -> Vector3:
+	var center_coordinate: Vector2i = world_to_chunk(world_position)
+	var search_radius: int = ceili(maximum_distance / chunk_size) + 1
+	var nearest_position := Vector3.INF
+	var nearest_distance: float = maximum_distance
+	for x in range(center_coordinate.x - search_radius, center_coordinate.x + search_radius + 1):
+		for z in range(center_coordinate.y - search_radius, center_coordinate.y + search_radius + 1):
+			var coordinate := Vector2i(x, z)
+			if not is_giant_landmark_chunk(coordinate):
+				continue
+			var giant_random: RandomNumberGenerator = create_giant_instance_random(coordinate)
+			var no_reserved_positions: Array[Vector2] = []
+			var local_position: Vector3 = get_giant_landmark_position(
+				giant_random,
+				coordinate,
+				no_reserved_positions,
+				is_guaranteed_ring_chunk(coordinate)
+			)
+			if local_position == Vector3.INF:
+				continue
+			var giant_world_position := local_position + Vector3(
+				coordinate.x * chunk_size,
+				0.0,
+				coordinate.y * chunk_size
+			)
+			var distance: float = Vector2(
+				giant_world_position.x - world_position.x,
+				giant_world_position.z - world_position.z
+			).length()
+			if distance < nearest_distance:
+				nearest_distance = distance
+				nearest_position = giant_world_position
+	return nearest_position
+
+
+func is_world_position_open(world_position: Vector3, clearance: float) -> bool:
+	var clearance_squared: float = clearance * clearance
+	for chunk in active_chunks.values():
+		for child in chunk.get_children():
+			if not (
+				child.name.begins_with("Tree_")
+				or child.name.begins_with("Rock_")
+				or child.name == "Landmark"
+				or child.name.begins_with("Revelation_")
+			):
+				continue
+			var child_position: Vector3 = child.global_position
+			var offset := Vector2(
+				child_position.x - world_position.x,
+				child_position.z - world_position.z
+			)
+			if offset.length_squared() < clearance_squared:
+				return false
+	return true

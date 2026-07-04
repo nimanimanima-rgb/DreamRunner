@@ -46,6 +46,10 @@ Distant Landmark Visibility Pass 01 keeps lightweight, non-colliding giant-form 
 
 Atmosphere Mood Tuning Pass 02 strengthens the emotional contrast between dawn, overcast, golden, night, and dust-haze states while preserving distant silhouettes.
 
+Revelation Composition Pass 01 adds deterministic ridge, solitary-giant, horizon-call, and liminal-clearing signal placement templates with quiet passages between them.
+
+Revelation Composition Flow Fix Pass 01 makes signals long-range and strongly forward-biased, adds anti-backtracking clearance, and makes quiet travel the default.
+
 ### Next Milestone
 
 **Web Atmosphere Smoke Test:** verify the larger scene, procedural sky, fog, lighting, and shadows in the browser before adding more world detail.

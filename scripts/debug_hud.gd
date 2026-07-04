@@ -55,6 +55,12 @@ func _process(_delta: float) -> void:
 				destination_manager.call("get_destination_distance")
 			)
 			terrain_text += "\nDream signal: %.0f m" % destination_distance
+			terrain_text += "\nComposition: %s" % destination_manager.call(
+				"get_current_composition_name"
+			)
+			terrain_text += "\nPlacement: %s" % destination_manager.call(
+				"get_placement_mode"
+			)
 	var movement_mode := "Gliding" if gliding else "Airborne"
 	if player.is_on_floor():
 		if horizontal_speed < 0.1:

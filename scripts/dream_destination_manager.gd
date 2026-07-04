@@ -3,10 +3,18 @@ extends Node3D
 @export var player_path: NodePath
 @export var camera_path: NodePath
 @export var terrain_manager_path: NodePath
-@export_range(60.0, 220.0, 5.0) var minimum_distance: float = 105.0
-@export_range(80.0, 260.0, 5.0) var maximum_distance: float = 165.0
+@export_range(200.0, 500.0, 10.0) var minimum_distance: float = 320.0
+@export_range(300.0, 800.0, 10.0) var preferred_distance_min: float = 480.0
+@export_range(500.0, 1000.0, 10.0) var preferred_distance_max: float = 720.0
+@export_range(700.0, 1200.0, 25.0) var far_distance_min: float = 900.0
+@export_range(900.0, 1400.0, 25.0) var far_distance_max: float = 1100.0
+@export_range(0.0, 0.3, 0.01) var far_destination_chance: float = 0.1
+@export_range(45.0, 90.0, 5.0) var preferred_forward_cone_degrees: float = 70.0
+@export_range(90.0, 130.0, 5.0) var fallback_forward_cone_degrees: float = 110.0
+@export_range(200.0, 500.0, 10.0) var previous_destination_clearance: float = 350.0
 @export_range(2.0, 12.0, 0.5) var reach_radius: float = 6.0
 @export_range(1.0, 8.0, 0.5) var height_above_ground: float = 4.0
+@export_range(0.0, 1.0, 0.05) var revelation_composition_chance: float = 0.3
 
 @onready var player: CharacterBody3D = get_node(player_path)
 @onready var camera: Camera3D = get_node(camera_path)
@@ -21,6 +29,15 @@ var response_time: float = 0.0
 var is_resolving: bool = false
 var destinations_reached: int = 0
 var previous_player_position := Vector3.ZERO
+var current_composition_name: String = "Quiet Passage"
+var previous_composition_name: String = ""
+var composition_giant_position := Vector3.INF
+var last_destination_position := Vector3.INF
+var last_travel_direction := Vector3.FORWARD
+var has_travel_direction: bool = false
+var has_active_destination: bool = false
+var current_destination_is_far: bool = false
+var placement_mode: String = "Forward"
 
 
 func _ready() -> void:
@@ -32,6 +49,10 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	animation_time += delta
+	var horizontal_velocity := Vector3(player.velocity.x, 0.0, player.velocity.z)
+	if horizontal_velocity.length_squared() > 16.0:
+		last_travel_direction = horizontal_velocity.normalized()
+		has_travel_direction = true
 	var player_movement: float = player.global_position.distance_to(previous_player_position)
 	previous_player_position = player.global_position
 
@@ -109,43 +130,246 @@ func create_destination_visual() -> void:
 
 
 func place_new_destination() -> void:
+	if has_active_destination:
+		last_destination_position = marker.global_position
 	is_resolving = false
 	response_time = 0.0
 	marker.visible = true
 	marker.scale = Vector3.ONE
 	marker_material.albedo_color.a = 0.82
 	marker_material.emission_energy_multiplier = 1.8
+	select_composition()
 
 	var chosen_position: Vector3 = find_destination_position()
 	destination_ground_height = chosen_position.y
 	marker.global_position = chosen_position + Vector3.UP * height_above_ground
+	has_active_destination = true
 
 
 func find_destination_position() -> Vector3:
 	var forward: Vector3 = get_preferred_direction()
-	var extra_distance: float = 20.0 if destinations_reached > 0 else 0.0
-	var fallback_position := player.global_position + forward * (minimum_distance + extra_distance)
-	fallback_position.y = get_terrain_height(fallback_position.x, fallback_position.z)
+	current_destination_is_far = random.randf() < far_destination_chance
+	if current_composition_name == "Horizon Call":
+		current_destination_is_far = random.randf() < 0.35
 
-	for _attempt in range(12):
-		var angle: float = random.randf_range(-0.7, 0.7)
-		var direction: Vector3 = forward.rotated(Vector3.UP, angle).normalized()
-		var distance: float = random.randf_range(
-			minimum_distance + extra_distance,
-			maximum_distance + extra_distance
+	var preferred_position: Vector3 = find_best_forward_candidate(
+		forward,
+		deg_to_rad(preferred_forward_cone_degrees),
+		32
+	)
+	if preferred_position != Vector3.INF:
+		placement_mode = "Forward"
+		return preferred_position
+
+	var fallback_position: Vector3 = find_best_forward_candidate(
+		forward,
+		deg_to_rad(fallback_forward_cone_degrees),
+		20
+	)
+	if fallback_position != Vector3.INF:
+		placement_mode = "Wide Fallback"
+		return fallback_position
+
+	placement_mode = "Direct Fallback"
+	var direct_distance: float = preferred_distance_min
+	var direct_position := player.global_position + forward * direct_distance
+	if (
+		last_destination_position != Vector3.INF
+		and horizontal_distance(direct_position, last_destination_position)
+		< previous_destination_clearance
+	):
+		direct_position = (
+			player.global_position
+			+ forward.rotated(Vector3.UP, deg_to_rad(45.0)) * direct_distance
 		)
-		var candidate := player.global_position + direction * distance
-		candidate.y = get_terrain_height(candidate.x, candidate.z)
-		if is_slope_suitable(candidate):
-			return candidate
+	direct_position.y = get_terrain_height(direct_position.x, direct_position.z)
+	return direct_position
 
-	return fallback_position
+
+func find_best_forward_candidate(
+	forward: Vector3,
+	half_angle_radians: float,
+	attempt_count: int
+) -> Vector3:
+	var best_position := Vector3.INF
+	var best_score: float = -INF
+	var minimum_forward_dot: float = cos(half_angle_radians)
+	for _attempt in range(attempt_count):
+		var candidate: Vector3 = create_forward_candidate(forward, half_angle_radians)
+		candidate.y = get_terrain_height(candidate.x, candidate.z)
+		var candidate_direction := candidate - player.global_position
+		candidate_direction.y = 0.0
+		var candidate_distance: float = candidate_direction.length()
+		if candidate_distance < minimum_distance:
+			continue
+		candidate_direction = candidate_direction.normalized()
+		var forward_alignment: float = forward.dot(candidate_direction)
+		if forward_alignment < minimum_forward_dot:
+			continue
+		if (
+			last_destination_position != Vector3.INF
+			and horizontal_distance(candidate, last_destination_position)
+			< previous_destination_clearance
+		):
+			continue
+		if not is_slope_suitable(candidate):
+			continue
+		var clearance: float = 45.0 if current_composition_name == "Liminal Clearing" else 24.0
+		if not bool(terrain_manager.call("is_world_position_open", candidate, clearance)):
+			continue
+		if composition_giant_position != Vector3.INF:
+			var giant_distance: float = horizontal_distance(candidate, composition_giant_position)
+			if giant_distance < 55.0:
+				continue
+
+		var score: float = get_flow_score(
+			candidate,
+			forward_alignment,
+			candidate_distance
+		) + get_composition_score(candidate)
+		if score > best_score:
+			best_score = score
+			best_position = candidate
+	return best_position
+
+
+func select_composition() -> void:
+	previous_composition_name = current_composition_name
+	composition_giant_position = Vector3.INF
+	if random.randf() > revelation_composition_chance:
+		current_composition_name = "Quiet Passage"
+		return
+
+	var composition_roll: float = random.randf()
+	if composition_roll < 0.45:
+		current_composition_name = "Ridge Reveal"
+	elif composition_roll < 0.8:
+		current_composition_name = "Liminal Clearing"
+	elif composition_roll < 0.9:
+		current_composition_name = "Solitary Giant"
+	else:
+		current_composition_name = "Horizon Call"
+
+	if current_composition_name == previous_composition_name:
+		current_composition_name = "Quiet Passage"
+		return
+	if current_composition_name in ["Solitary Giant", "Horizon Call"]:
+		composition_giant_position = Vector3(
+			terrain_manager.call(
+				"get_nearest_giant_landmark_position",
+				player.global_position,
+				900.0
+			)
+		)
+		if not is_giant_ahead(get_preferred_direction()):
+			current_composition_name = "Quiet Passage"
+			composition_giant_position = Vector3.INF
+
+
+func is_giant_ahead(forward: Vector3) -> bool:
+	if composition_giant_position == Vector3.INF:
+		return false
+	var giant_direction := composition_giant_position - player.global_position
+	giant_direction.y = 0.0
+	if giant_direction.length_squared() < 0.001:
+		return false
+	return forward.dot(giant_direction.normalized()) >= cos(
+		deg_to_rad(preferred_forward_cone_degrees)
+	)
+
+
+func create_forward_candidate(forward: Vector3, half_angle_radians: float) -> Vector3:
+	var minimum_candidate_distance: float = preferred_distance_min
+	var maximum_candidate_distance: float = preferred_distance_max
+	if current_destination_is_far:
+		minimum_candidate_distance = far_distance_min
+		maximum_candidate_distance = far_distance_max
+	elif current_composition_name == "Ridge Reveal":
+		minimum_candidate_distance = 420.0
+		maximum_candidate_distance = 680.0
+	elif current_composition_name == "Liminal Clearing":
+		minimum_candidate_distance = 400.0
+		maximum_candidate_distance = 650.0
+	elif current_composition_name == "Horizon Call":
+		minimum_candidate_distance = 650.0
+		maximum_candidate_distance = 900.0
+
+	var angle: float = random.randf_range(-half_angle_radians, half_angle_radians)
+	var direction: Vector3 = forward.rotated(Vector3.UP, angle).normalized()
+	var distance: float = random.randf_range(
+		minimum_candidate_distance,
+		maximum_candidate_distance
+	)
+	return player.global_position + direction * distance
+
+
+func get_flow_score(
+	candidate: Vector3,
+	forward_alignment: float,
+	candidate_distance: float
+) -> float:
+	var preferred_center: float = (
+		(far_distance_min + far_distance_max) * 0.5
+		if current_destination_is_far
+		else (preferred_distance_min + preferred_distance_max) * 0.5
+	)
+	var distance_score: float = -absf(candidate_distance - preferred_center) * 0.025
+	return forward_alignment * 120.0 + distance_score
+
+
+func get_composition_score(candidate: Vector3) -> float:
+	match current_composition_name:
+		"Ridge Reveal":
+			return get_ridge_reveal_score(candidate)
+		"Solitary Giant":
+			var giant_distance: float = horizontal_distance(candidate, composition_giant_position)
+			return -absf(giant_distance - 180.0) * 0.035 + candidate.y * 0.05
+		"Horizon Call":
+			return horizontal_distance(candidate, player.global_position) * 0.008 + candidate.y * 0.08
+		"Liminal Clearing":
+			return -get_local_height_variation(candidate, 12.0) * 3.0
+		_:
+			return -get_local_height_variation(candidate, 8.0) + random.randf() * 0.25
+
+
+func get_ridge_reveal_score(candidate: Vector3) -> float:
+	var highest_occlusion: float = -INF
+	for fraction in [0.3, 0.45, 0.6]:
+		var sample_position: Vector3 = player.global_position.lerp(candidate, fraction)
+		var terrain_height: float = get_terrain_height(sample_position.x, sample_position.z)
+		var sightline_height: float = lerpf(
+			player.global_position.y,
+			candidate.y,
+			fraction
+		)
+		highest_occlusion = maxf(highest_occlusion, terrain_height - sightline_height)
+	return highest_occlusion * 2.5 + candidate.y * 0.08
+
+
+func get_local_height_variation(candidate: Vector3, sample_offset: float) -> float:
+	var maximum_difference: float = 0.0
+	var sample_offsets: Array[Vector2] = [
+		Vector2(sample_offset, 0.0),
+		Vector2(-sample_offset, 0.0),
+		Vector2(0.0, sample_offset),
+		Vector2(0.0, -sample_offset),
+	]
+	for offset in sample_offsets:
+		var nearby_height: float = get_terrain_height(candidate.x + offset.x, candidate.z + offset.y)
+		maximum_difference = maxf(maximum_difference, absf(nearby_height - candidate.y))
+	return maximum_difference
+
+
+func horizontal_distance(first: Vector3, second: Vector3) -> float:
+	return Vector2(first.x - second.x, first.z - second.z).length()
 
 
 func get_preferred_direction() -> Vector3:
 	var horizontal_velocity := Vector3(player.velocity.x, 0.0, player.velocity.z)
 	if horizontal_velocity.length_squared() > 9.0:
 		return horizontal_velocity.normalized()
+	if has_travel_direction:
+		return last_travel_direction
 
 	var camera_forward := camera.global_basis * Vector3.FORWARD
 	camera_forward.y = 0.0
@@ -222,3 +446,11 @@ func get_destination_position() -> Vector3:
 	if marker == null:
 		return Vector3.ZERO
 	return marker.global_position
+
+
+func get_current_composition_name() -> String:
+	return current_composition_name
+
+
+func get_placement_mode() -> String:
+	return placement_mode

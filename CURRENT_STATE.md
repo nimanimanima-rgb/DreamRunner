@@ -35,6 +35,8 @@ DreamRunner is a browser-first third-person dream-running game built in Godot 4 
 - Five environmental mood states smoothly control sky, fog, ambient light, directional light, and mote color/intensity.
 - Mood palettes are tuned for distinct dawn calm, cold overcast weight, rare golden revelation, playable blue night, and washed travel haze.
 - One active primitive-based dream signal with terrain-aware placement, slope checks, glow, pulse, orb, rings, and a long-distance beam.
+- Dream signals use episodic composition templates to favor ridge reveals, solitary giants, horizon calls, and open liminal clearings without adding props.
+- Destination placement is flow-first: long-range signals favor the player’s travel heading, reject nearby/backtracking candidates, and use quiet forward passages most often.
 - The signal brightens when the player travels far away; the player is not punished or forcibly redirected.
 
 ## Current UI/HUD systems
@@ -45,7 +47,7 @@ DreamRunner is a browser-first third-person dream-running game built in Godot 4 
 - Off-screen signal arrow and distance label, hidden when the signal is visible or the mouse is released.
 - Debug HUD toggled with `F3`; hidden by default for a cleaner presentation.
 - `F4` cycles Pale Dawn, Cold Overcast, Golden Dissolve, Blue Liminal Night, and Dust Haze Afternoon for development testing.
-- Debug information includes movement state, speed, vertical velocity, sprint/glide state, mouse status, current chunk, active chunks, active props, giant forms, far silhouettes, dream motes, current mood, and destination distance.
+- Debug information includes movement state, speed, vertical velocity, sprint/glide state, mouse status, current chunk, active chunks, active props, giant forms, far silhouettes, dream motes, current mood, destination distance, composition type, and placement mode.
 
 ## Current browser/export status
 
