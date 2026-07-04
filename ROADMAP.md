@@ -30,6 +30,8 @@ Goal: make movement feel good before anything else.
 
 The first playable movement prototype and Movement Laboratory are complete. The current build includes high-speed running, high jump, smooth air control, glide/float movement, a debug HUD, an expanded handcrafted test area, browser export, and Web-compatible mouse capture.
 
+`Game.tscn` is now the main playable scene and launches when the project runs. It contains the procedural world setup promoted from the terrain prototype. `Main.tscn` remains available as the stable Movement Laboratory backup, and `ProceduralTest.tscn` remains available as the procedural terrain sandbox.
+
 ### Next Milestone
 
 **Web Atmosphere Smoke Test:** verify the larger scene, procedural sky, fog, lighting, and shadows in the browser before adding more world detail.
