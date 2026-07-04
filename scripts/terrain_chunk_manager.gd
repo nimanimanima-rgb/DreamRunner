@@ -15,11 +15,11 @@ extends Node3D
 @export_range(0, 8, 1) var trees_per_chunk: int = 2
 @export_range(0, 8, 1) var rocks_per_chunk: int = 1
 @export_range(0.0, 1.0, 0.01) var landmark_chance: float = 0.1
-@export_range(0.0, 0.5, 0.01) var tree_cluster_chance: float = 0.18
+@export_range(0.0, 0.5, 0.01) var tree_cluster_chance: float = 0.22
 @export var prop_seed: int = 4242
 @export var prop_border_margin: float = 14.0
 @export var minimum_prop_spacing: float = 12.0
-@export var spawn_clear_radius: float = 45.0
+@export var spawn_clear_radius: float = 55.0
 
 @export_group("Placeholder Colors")
 @export var grass_color_a := Color(0.31, 0.48, 0.25)
@@ -239,7 +239,7 @@ func create_chunk_props(chunk: StaticBody3D, coordinate: Vector2i) -> int:
 				)
 				if (
 					is_spawn_area_clear(coordinate, companion_position)
-					and is_prop_spacing_clear(companion_position, placed_positions, 4.5)
+					and is_prop_spacing_clear(companion_position, placed_positions, 5.0)
 				):
 					create_tree(chunk, companion_position, tree_index + 100, random, 0.72)
 					placed_positions.append(Vector2(companion_position.x, companion_position.z))
@@ -303,7 +303,7 @@ func get_tree_companion_position(
 	main_position: Vector3
 ) -> Vector3:
 	var angle := random.randf_range(0.0, TAU)
-	var distance := random.randf_range(5.0, 8.5)
+	var distance := random.randf_range(6.0, 11.0)
 	var companion := main_position + Vector3(cos(angle) * distance, 0.0, sin(angle) * distance)
 	var half_size := chunk_size * 0.5 - prop_border_margin
 	companion.x = clampf(companion.x, -half_size, half_size)
@@ -341,7 +341,7 @@ func create_tree(
 	random: RandomNumberGenerator,
 	scale_multiplier: float = 1.0
 ) -> void:
-	var tree_scale := random.randf_range(0.82, 1.28) * scale_multiplier
+	var tree_scale: float = get_tree_scale(random) * scale_multiplier
 	var tree := Node3D.new()
 	tree.name = "Tree_%d" % index
 	tree.position = base_position
@@ -376,6 +376,17 @@ func create_tree(
 	chunk.add_child(collision)
 
 
+func get_tree_scale(random: RandomNumberGenerator) -> float:
+	var size_roll: float = random.randf()
+	if size_roll < 0.12:
+		return random.randf_range(0.75, 1.0)
+	if size_roll < 0.72:
+		return random.randf_range(1.15, 1.65)
+	if size_roll < 0.95:
+		return random.randf_range(1.8, 2.45)
+	return random.randf_range(2.8, 3.4)
+
+
 func create_rock(
 	chunk: StaticBody3D,
 	base_position: Vector3,
@@ -383,10 +394,11 @@ func create_rock(
 	random: RandomNumberGenerator
 ) -> void:
 	var rock := MeshInstance3D.new()
+	var rock_size: float = get_rock_scale(random)
 	var rock_scale := Vector3(
-		random.randf_range(0.72, 1.35),
-		random.randf_range(0.65, 1.2),
-		random.randf_range(0.72, 1.35)
+		rock_size * random.randf_range(0.82, 1.18),
+		rock_size * random.randf_range(0.72, 1.08),
+		rock_size * random.randf_range(0.82, 1.18)
 	)
 	rock.name = "Rock_%d" % index
 	rock.position = base_position + Vector3(0.0, 0.7 * rock_scale.y, 0.0)
@@ -403,6 +415,17 @@ func create_rock(
 	collision.shape = rock_shape
 	collision.scale = rock_scale
 	chunk.add_child(collision)
+
+
+func get_rock_scale(random: RandomNumberGenerator) -> float:
+	var size_roll: float = random.randf()
+	if size_roll < 0.18:
+		return random.randf_range(0.7, 1.0)
+	if size_roll < 0.72:
+		return random.randf_range(1.2, 1.8)
+	if size_roll < 0.95:
+		return random.randf_range(2.0, 2.8)
+	return random.randf_range(3.2, 4.2)
 
 
 func create_landmark(

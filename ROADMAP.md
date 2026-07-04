@@ -36,6 +36,8 @@ World Life Pass 01 adds lightweight drifting dream motes, subtle canopy and land
 
 Dream Trail / Destination Pass 01 adds a soft exploration loop: follow a distant dream signal, reach it, and watch a new destination appear farther through the procedural world.
 
+Dream Signal Guidance + Prop Scale Pass 01 adds a minimal off-screen signal indicator, a stronger long-distance beam, and broader seeded tree and rock size variation with rare giant silhouettes.
+
 ### Next Milestone
 
 **Web Atmosphere Smoke Test:** verify the larger scene, procedural sky, fog, lighting, and shadows in the browser before adding more world detail.

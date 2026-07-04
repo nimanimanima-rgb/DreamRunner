@@ -95,14 +95,14 @@ func create_destination_visual() -> void:
 	marker.add_child(orb)
 
 	var pillar_mesh := CylinderMesh.new()
-	pillar_mesh.top_radius = 0.08
-	pillar_mesh.bottom_radius = 0.28
-	pillar_mesh.height = 10.0
+	pillar_mesh.top_radius = 0.14
+	pillar_mesh.bottom_radius = 0.42
+	pillar_mesh.height = 40.0
 	pillar_mesh.radial_segments = 8
 
 	var pillar := MeshInstance3D.new()
 	pillar.name = "SignalPillar"
-	pillar.position.y = 1.0
+	pillar.position.y = 16.0
 	pillar.mesh = pillar_mesh
 	pillar.material_override = marker_material
 	marker.add_child(pillar)
@@ -184,6 +184,11 @@ func update_destination_motion(delta: float) -> void:
 	marker.position.y = destination_ground_height + height_above_ground + sin(animation_time * 1.25) * 0.45
 	var pulse: float = 1.0 + sin(animation_time * 1.8) * 0.06
 	marker.scale = Vector3.ONE * pulse
+	var distance: float = get_destination_distance()
+	var lost_boost: float = clampf((distance - 220.0) / 500.0, 0.0, 1.0)
+	marker_material.emission_energy_multiplier = (
+		1.8 + lost_boost * 2.2 + sin(animation_time * 1.8) * 0.18
+	)
 
 
 func begin_destination_response() -> void:
@@ -211,3 +216,9 @@ func get_destination_distance() -> float:
 	var player_position_2d := Vector2(player.global_position.x, player.global_position.z)
 	var destination_position_2d := Vector2(marker.global_position.x, marker.global_position.z)
 	return player_position_2d.distance_to(destination_position_2d)
+
+
+func get_destination_position() -> Vector3:
+	if marker == null:
+		return Vector3.ZERO
+	return marker.global_position

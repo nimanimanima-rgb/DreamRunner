@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://scripts/start_overlay.gd" id="4_overlay"]
 [ext_resource type="Script" path="res://scripts/dream_atmosphere.gd" id="5_atmosphere"]
 [ext_resource type="Script" path="res://scripts/dream_destination_manager.gd" id="6_destination"]
+[ext_resource type="Script" path="res://scripts/dream_signal_guidance.gd" id="7_guidance"]
 
 [sub_resource type="StandardMaterial3D" id="PlayerMaterial"]
 albedo_color = Color(0.18, 0.42, 0.68, 1)
@@ -145,6 +146,46 @@ theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1
 theme_override_font_sizes/font_size = 17
 text = "Follow the dream signal"
+horizontal_alignment = 1
+
+[node name="SignalGuidance" type="CanvasLayer" parent="."]
+layer = 3
+script = ExtResource("7_guidance")
+camera_path = NodePath("../Player/CameraPivot/SpringArm3D/Camera3D")
+destination_manager_path = NodePath("../DreamDestinationManager")
+
+[node name="Indicator" type="Control" parent="SignalGuidance"]
+visible = false
+mouse_filter = 2
+offset_right = 180.0
+offset_bottom = 64.0
+
+[node name="Arrow" type="Label" parent="SignalGuidance/Indicator"]
+mouse_filter = 2
+offset_left = 75.0
+offset_right = 105.0
+offset_bottom = 30.0
+pivot_offset = Vector2(15, 15)
+theme_override_colors/font_color = Color(0.66, 0.82, 1, 0.9)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 24
+text = "▲"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Distance" type="Label" parent="SignalGuidance/Indicator"]
+mouse_filter = 2
+offset_top = 36.0
+offset_right = 180.0
+offset_bottom = 62.0
+theme_override_colors/font_color = Color(0.75, 0.86, 1, 0.88)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 15
+text = "Dream signal: 0 m"
 horizontal_alignment = 1
 
 [node name="StartOverlay" type="CanvasLayer" parent="."]
