@@ -39,11 +39,13 @@ func _process(_delta: float) -> void:
 		var chunk_count = terrain_manager.call("get_active_chunk_count")
 		var prop_count = terrain_manager.call("get_active_prop_count")
 		var giant_landmark_count = terrain_manager.call("get_active_giant_landmark_count")
+		var far_landmark_count = terrain_manager.call("get_far_landmark_proxy_count")
 		terrain_text = (
 			"\nChunk: (%d, %d)\n" % [chunk_coordinate.x, chunk_coordinate.y]
 			+ "Active chunks: %d\n" % chunk_count
 			+ "Active props: %d\n" % prop_count
-			+ "Giant forms: %d" % giant_landmark_count
+			+ "Giant forms: %d\n" % giant_landmark_count
+			+ "Far silhouettes: %d" % far_landmark_count
 		)
 		if atmosphere != null:
 			terrain_text += "\nDream motes: %d" % atmosphere.call("get_active_mote_count")

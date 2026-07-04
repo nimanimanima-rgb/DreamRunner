@@ -42,6 +42,8 @@ Atmosphere Mood States Pass 01 adds five faded sky, fog, lighting, and mote mood
 
 Giant Forms / Revelation Landmarks Pass 01 adds rare deterministic giant trees, pale pillars, tilted monoliths, and horizon rings placed as distant ridge-scale silhouettes.
 
+Distant Landmark Visibility Pass 01 keeps lightweight, non-colliding giant-form silhouettes active beyond the full terrain grid and tunes mood haze for long-distance readability.
+
 ### Next Milestone
 
 **Web Atmosphere Smoke Test:** verify the larger scene, procedural sky, fog, lighting, and shadows in the browser before adding more world detail.

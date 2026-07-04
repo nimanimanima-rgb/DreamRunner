@@ -28,6 +28,7 @@ DreamRunner is a browser-first third-person dream-running game built in Godot 4 
 - Deterministic procedural trees, rocks, and surreal landmarks.
 - Seeded prop rotation, color, clustering, and small-to-rare-giant scale variation.
 - Rare revelation regions place solitary giant trees, pale stone pillars, tilted monoliths, or standing horizon rings on open ridge-like terrain.
+- Lightweight, non-colliding far proxies keep rare giant silhouettes visible beyond the full terrain streaming radius.
 - Spawn clearance and spacing rules preserve open sprint lanes near the starting area.
 - Centralized gentle canopy sway and landmark pulsing.
 - Lightweight dream atmosphere with 48 drifting/recycled motes rendered in one `MultiMesh`.
@@ -43,7 +44,7 @@ DreamRunner is a browser-first third-person dream-running game built in Godot 4 
 - Off-screen signal arrow and distance label, hidden when the signal is visible or the mouse is released.
 - Debug HUD toggled with `F3`; hidden by default for a cleaner presentation.
 - `F4` cycles Pale Dawn, Cold Overcast, Golden Dissolve, Blue Liminal Night, and Dust Haze Afternoon for development testing.
-- Debug information includes movement state, speed, vertical velocity, sprint/glide state, mouse status, current chunk, active chunks, active props, giant forms, dream motes, current mood, and destination distance.
+- Debug information includes movement state, speed, vertical velocity, sprint/glide state, mouse status, current chunk, active chunks, active props, giant forms, far silhouettes, dream motes, current mood, and destination distance.
 
 ## Current browser/export status
 

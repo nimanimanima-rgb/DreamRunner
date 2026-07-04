@@ -28,6 +28,7 @@ extends Node3D
 @export var giant_prop_clearance: float = 60.0
 @export var guarantee_nearby_test_ring: bool = true
 @export var guaranteed_ring_chunk: Vector2i = Vector2i(2, 0)
+@export_range(3, 10, 1) var far_landmark_radius: int = 6
 
 @export_group("Tree Scale Tuning")
 @export_range(3.0, 15.0, 0.5) var min_tree_height: float = 5.0
@@ -56,6 +57,7 @@ extends Node3D
 @onready var player: CharacterBody3D = get_node(player_path)
 
 var active_chunks: Dictionary = {}
+var far_landmark_proxies: Dictionary = {}
 var current_chunk := Vector2i.ZERO
 
 var terrain_noise: FastNoiseLite
@@ -261,6 +263,8 @@ func update_chunks() -> void:
 		if not needed_chunks.has(coordinate):
 			remove_chunk(coordinate)
 
+	update_far_landmark_proxies()
+
 
 func create_chunk(coordinate: Vector2i) -> void:
 	var chunk := StaticBody3D.new()
@@ -361,14 +365,16 @@ func create_chunk_props(chunk: StaticBody3D, coordinate: Vector2i) -> Vector2i:
 
 	if is_giant_landmark_chunk(coordinate):
 		var force_placement: bool = is_guaranteed_ring_chunk(coordinate)
+		var giant_random: RandomNumberGenerator = create_giant_instance_random(coordinate)
+		var no_reserved_positions: Array[Vector2] = []
 		var giant_position: Vector3 = get_giant_landmark_position(
-			random,
+			giant_random,
 			coordinate,
-			placed_positions,
+			no_reserved_positions,
 			force_placement
 		)
 		if giant_position != Vector3.INF:
-			create_giant_landmark(chunk, giant_position, random, coordinate)
+			create_giant_landmark(chunk, giant_position, giant_random, coordinate)
 			prop_count += 1
 			giant_count = 1
 
@@ -380,6 +386,12 @@ func get_chunk_prop_seed(coordinate: Vector2i) -> int:
 	mixed_seed ^= coordinate.x * 73856093
 	mixed_seed ^= coordinate.y * 19349663
 	return mixed_seed & 0x7fffffff
+
+
+func create_giant_instance_random(coordinate: Vector2i) -> RandomNumberGenerator:
+	var giant_random := RandomNumberGenerator.new()
+	giant_random.seed = get_chunk_prop_seed(coordinate) ^ 0x6D2B79
+	return giant_random
 
 
 func is_giant_landmark_chunk(coordinate: Vector2i) -> bool:
@@ -404,6 +416,53 @@ func is_giant_landmark_chunk(coordinate: Vector2i) -> bool:
 
 func is_guaranteed_ring_chunk(coordinate: Vector2i) -> bool:
 	return guarantee_nearby_test_ring and coordinate == guaranteed_ring_chunk
+
+
+func update_far_landmark_proxies() -> void:
+	var needed_proxies: Dictionary = {}
+	for x in range(current_chunk.x - far_landmark_radius, current_chunk.x + far_landmark_radius + 1):
+		for z in range(current_chunk.y - far_landmark_radius, current_chunk.y + far_landmark_radius + 1):
+			var coordinate := Vector2i(x, z)
+			if is_coordinate_in_active_radius(coordinate):
+				continue
+			if not is_giant_landmark_chunk(coordinate):
+				continue
+			needed_proxies[coordinate] = true
+			if not far_landmark_proxies.has(coordinate):
+				create_far_landmark_proxy(coordinate)
+
+	for coordinate in far_landmark_proxies.keys():
+		if not needed_proxies.has(coordinate):
+			var proxy: Node3D = far_landmark_proxies[coordinate]
+			far_landmark_proxies.erase(coordinate)
+			proxy.queue_free()
+
+
+func is_coordinate_in_active_radius(coordinate: Vector2i) -> bool:
+	return (
+		absi(coordinate.x - current_chunk.x) <= active_radius
+		and absi(coordinate.y - current_chunk.y) <= active_radius
+	)
+
+
+func create_far_landmark_proxy(coordinate: Vector2i) -> void:
+	var giant_random: RandomNumberGenerator = create_giant_instance_random(coordinate)
+	var no_reserved_positions: Array[Vector2] = []
+	var giant_position: Vector3 = get_giant_landmark_position(
+		giant_random,
+		coordinate,
+		no_reserved_positions,
+		is_guaranteed_ring_chunk(coordinate)
+	)
+	if giant_position == Vector3.INF:
+		return
+
+	var proxy := Node3D.new()
+	proxy.name = "FarLandmark_%d_%d" % [coordinate.x, coordinate.y]
+	proxy.position = Vector3(coordinate.x * chunk_size, 0.0, coordinate.y * chunk_size)
+	add_child(proxy)
+	create_giant_landmark(proxy, giant_position, giant_random, coordinate, false)
+	far_landmark_proxies[coordinate] = proxy
 
 
 func get_giant_landmark_position(
@@ -575,10 +634,11 @@ func is_prop_spacing_clear(
 
 
 func create_giant_landmark(
-	chunk: StaticBody3D,
+	chunk: Node3D,
 	base_position: Vector3,
 	random: RandomNumberGenerator,
-	coordinate: Vector2i
+	coordinate: Vector2i,
+	add_collision: bool = true
 ) -> void:
 	var form_type: int
 	if is_guaranteed_ring_chunk(coordinate):
@@ -589,19 +649,20 @@ func create_giant_landmark(
 		form_type = random.randi_range(1, 3)
 	match form_type:
 		0:
-			create_solitary_giant_tree(chunk, base_position, random)
+			create_solitary_giant_tree(chunk, base_position, random, add_collision)
 		1:
-			create_pale_stone_pillar(chunk, base_position, random)
+			create_pale_stone_pillar(chunk, base_position, random, add_collision)
 		2:
-			create_tilted_monolith(chunk, base_position, random)
+			create_tilted_monolith(chunk, base_position, random, add_collision)
 		_:
 			create_horizon_ring(chunk, base_position, random)
 
 
 func create_solitary_giant_tree(
-	chunk: StaticBody3D,
+	chunk: Node3D,
 	base_position: Vector3,
-	random: RandomNumberGenerator
+	random: RandomNumberGenerator,
+	add_collision: bool = true
 ) -> void:
 	var target_height: float = get_revelation_tree_height(random)
 	var base_giant_tree_height: float = 88.0
@@ -639,18 +700,18 @@ func create_solitary_giant_tree(
 		random
 	))
 	chunk.add_child(giant_tree)
-	animated_foliage.append({
-		"node": main_canopy,
-		"phase": random.randf_range(0.0, TAU),
-		"strength": 0.012,
-	})
-
-	var collision := CollisionShape3D.new()
-	collision.name = "GiantTreeCollision"
-	collision.position = base_position + Vector3.UP * 31.0 * giant_tree_scale
-	collision.shape = giant_trunk_shape
-	collision.scale = Vector3.ONE * giant_tree_scale
-	chunk.add_child(collision)
+	if add_collision:
+		animated_foliage.append({
+			"node": main_canopy,
+			"phase": random.randf_range(0.0, TAU),
+			"strength": 0.012,
+		})
+		var collision := CollisionShape3D.new()
+		collision.name = "GiantTreeCollision"
+		collision.position = base_position + Vector3.UP * 31.0 * giant_tree_scale
+		collision.shape = giant_trunk_shape
+		collision.scale = Vector3.ONE * giant_tree_scale
+		chunk.add_child(collision)
 
 
 func get_revelation_tree_height(random: RandomNumberGenerator) -> float:
@@ -681,9 +742,10 @@ func create_giant_canopy(
 
 
 func create_pale_stone_pillar(
-	chunk: StaticBody3D,
+	chunk: Node3D,
 	base_position: Vector3,
-	random: RandomNumberGenerator
+	random: RandomNumberGenerator,
+	add_collision: bool = true
 ) -> void:
 	var target_height: float = random.randf_range(min_pillar_height, max_pillar_height)
 	var height_scale: float = target_height / 120.0
@@ -699,23 +761,25 @@ func create_pale_stone_pillar(
 	pillar.material_override = pale_stone_material
 	chunk.add_child(pillar)
 
-	var collision := CollisionShape3D.new()
-	collision.name = "PalePillarCollision"
-	collision.position = base_position + Vector3.UP * 10.0
-	collision.rotation.y = pillar.rotation.y
-	collision.shape = giant_pillar_shape
-	collision.scale = Vector3(
-		minf(width_scale, 1.0),
-		1.0,
-		minf(depth_scale, 1.0)
-	)
-	chunk.add_child(collision)
+	if add_collision:
+		var collision := CollisionShape3D.new()
+		collision.name = "PalePillarCollision"
+		collision.position = base_position + Vector3.UP * 10.0
+		collision.rotation.y = pillar.rotation.y
+		collision.shape = giant_pillar_shape
+		collision.scale = Vector3(
+			minf(width_scale, 1.0),
+			1.0,
+			minf(depth_scale, 1.0)
+		)
+		chunk.add_child(collision)
 
 
 func create_tilted_monolith(
-	chunk: StaticBody3D,
+	chunk: Node3D,
 	base_position: Vector3,
-	random: RandomNumberGenerator
+	random: RandomNumberGenerator,
+	add_collision: bool = true
 ) -> void:
 	var target_height: float = random.randf_range(min_monolith_height, max_monolith_height)
 	var height_scale: float = target_height / 90.0
@@ -731,21 +795,22 @@ func create_tilted_monolith(
 	monolith.material_override = dark_stone_material
 	chunk.add_child(monolith)
 
-	var collision := CollisionShape3D.new()
-	collision.name = "TiltedMonolithCollision"
-	collision.position = base_position + Vector3.UP * 10.0
-	collision.rotation.y = monolith.rotation.y
-	collision.shape = giant_monolith_shape
-	collision.scale = Vector3(
-		minf(width_scale, 1.0),
-		1.0,
-		minf(depth_scale, 1.0)
-	)
-	chunk.add_child(collision)
+	if add_collision:
+		var collision := CollisionShape3D.new()
+		collision.name = "TiltedMonolithCollision"
+		collision.position = base_position + Vector3.UP * 10.0
+		collision.rotation.y = monolith.rotation.y
+		collision.shape = giant_monolith_shape
+		collision.scale = Vector3(
+			minf(width_scale, 1.0),
+			1.0,
+			minf(depth_scale, 1.0)
+		)
+		chunk.add_child(collision)
 
 
 func create_horizon_ring(
-	chunk: StaticBody3D,
+	chunk: Node3D,
 	base_position: Vector3,
 	_random: RandomNumberGenerator
 ) -> void:
@@ -1061,3 +1126,7 @@ func get_active_prop_count() -> int:
 
 func get_active_giant_landmark_count() -> int:
 	return active_giant_landmark_count
+
+
+func get_far_landmark_proxy_count() -> int:
+	return far_landmark_proxies.size()
