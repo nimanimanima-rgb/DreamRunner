@@ -6,6 +6,7 @@ extends CanvasLayer
 @onready var prompt: Label = $CenterContainer/Message/Prompt
 
 var has_entered_dream: bool = false
+var was_mouse_captured: bool = false
 
 
 func _ready() -> void:
@@ -16,7 +17,13 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	visible = Input.get_mouse_mode() != Input.MOUSE_MODE_CAPTURED
+	var mouse_is_captured: bool = Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED
+	visible = not mouse_is_captured
+	# Browsers can release pointer lock themselves before Godot receives Esc.
+	# Treat every captured-to-visible transition as a pause, including focus loss.
+	if was_mouse_captured and not mouse_is_captured and not get_tree().paused:
+		get_tree().paused = true
+	was_mouse_captured = mouse_is_captured
 	if not visible:
 		has_entered_dream = true
 	prompt.text = "Click to resume dream" if has_entered_dream else "Click to enter dream"
@@ -32,4 +39,5 @@ func _input(event: InputEvent) -> void:
 		get_tree().paused = false
 		player.call("capture_mouse")
 		has_entered_dream = true
+		was_mouse_captured = true
 		get_viewport().set_input_as_handled()
