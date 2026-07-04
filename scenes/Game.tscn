@@ -214,6 +214,7 @@ horizontal_alignment = 1
 [node name="StartOverlay" type="CanvasLayer" parent="."]
 layer = 10
 script = ExtResource("4_overlay")
+player_path = NodePath("../Player")
 
 [node name="Backdrop" type="ColorRect" parent="StartOverlay"]
 mouse_filter = 2
@@ -237,14 +238,25 @@ mouse_filter = 2
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Title" type="Label" parent="StartOverlay/CenterContainer/Message"]
+[node name="GameTitle" type="Label" parent="StartOverlay/CenterContainer/Message"]
 mouse_filter = 2
 layout_mode = 2
 theme_override_colors/font_color = Color(0.94, 0.97, 1, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
 theme_override_constants/shadow_offset_x = 2
 theme_override_constants/shadow_offset_y = 2
-theme_override_font_sizes/font_size = 32
+theme_override_font_sizes/font_size = 42
+text = "DreamRunner"
+horizontal_alignment = 1
+
+[node name="Prompt" type="Label" parent="StartOverlay/CenterContainer/Message"]
+mouse_filter = 2
+layout_mode = 2
+theme_override_colors/font_color = Color(0.87, 0.92, 0.98, 0.96)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 24
 text = "Click to enter dream"
 horizontal_alignment = 1
 
@@ -255,6 +267,8 @@ theme_override_colors/font_color = Color(0.82, 0.88, 0.95, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
 theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1
-theme_override_font_sizes/font_size = 17
-text = "WASD move • Shift sprint • Space jump/glide • Esc release mouse"
+theme_override_font_sizes/font_size = 16
+text = "WASD  move     Shift  sprint     Space  jump / glide
+R  reset     F3  debug     F4  mood cycle     M  mute
+Esc  release mouse / pause"
 horizontal_alignment = 1

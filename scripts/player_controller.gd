@@ -96,7 +96,7 @@ func _input(event: InputEvent) -> void:
 		return
 
 	if event.is_action_pressed("ui_cancel"):
-		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+		release_mouse_and_pause()
 		get_viewport().set_input_as_handled()
 		return
 
@@ -106,8 +106,7 @@ func _input(event: InputEvent) -> void:
 		and event.pressed
 		and Input.get_mouse_mode() != Input.MOUSE_MODE_CAPTURED
 	):
-		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
-		dream_entered.emit()
+		capture_mouse()
 		get_viewport().set_input_as_handled()
 		return
 
@@ -120,6 +119,16 @@ func _input(event: InputEvent) -> void:
 			deg_to_rad(min_pitch_degrees),
 			deg_to_rad(max_pitch_degrees)
 		)
+
+
+func capture_mouse() -> void:
+	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	dream_entered.emit()
+
+
+func release_mouse_and_pause() -> void:
+	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+	get_tree().paused = true
 
 
 func reset_to_start() -> void:
