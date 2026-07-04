@@ -21,6 +21,30 @@ extends Node3D
 @export var minimum_prop_spacing: float = 12.0
 @export var spawn_clear_radius: float = 55.0
 
+@export_group("Giant Revelation Landmarks")
+@export_range(2, 8, 1) var giant_region_size: int = 4
+@export_range(0.0, 1.0, 0.05) var giant_region_chance: float = 0.5
+@export var giant_start_clear_radius: float = 220.0
+@export var giant_prop_clearance: float = 60.0
+@export var guarantee_nearby_test_ring: bool = true
+@export var guaranteed_ring_chunk: Vector2i = Vector2i(2, 0)
+
+@export_group("Tree Scale Tuning")
+@export_range(3.0, 15.0, 0.5) var min_tree_height: float = 5.0
+@export_range(80.0, 200.0, 5.0) var max_giant_tree_height: float = 140.0
+@export_range(0.25, 0.6, 0.01) var large_tree_height_ratio: float = 0.42
+@export_range(0.05, 0.6, 0.01) var giant_tree_chance: float = 0.25
+@export_range(0.0, 0.5, 0.01) var world_tree_chance: float = 0.18
+
+@export_group("Stone Scale Tuning")
+@export_range(40.0, 120.0, 5.0) var min_pillar_height: float = 80.0
+@export_range(80.0, 180.0, 5.0) var max_pillar_height: float = 140.0
+@export_range(80.0, 160.0, 5.0) var min_monolith_height: float = 110.0
+@export_range(120.0, 220.0, 5.0) var max_monolith_height: float = 180.0
+@export_range(0.0, 0.2, 0.01) var large_boulder_chance: float = 0.06
+@export_range(0.0, 0.1, 0.005) var monumental_boulder_chance: float = 0.01
+@export_range(25.0, 80.0, 5.0) var max_monumental_boulder_height: float = 55.0
+
 @export_group("Placeholder Colors")
 @export var grass_color_a := Color(0.31, 0.48, 0.25)
 @export var grass_color_b := Color(0.28, 0.44, 0.23)
@@ -42,6 +66,9 @@ var trunk_material: StandardMaterial3D
 var foliage_material: StandardMaterial3D
 var rock_material: StandardMaterial3D
 var landmark_material: StandardMaterial3D
+var pale_stone_material: StandardMaterial3D
+var dark_stone_material: StandardMaterial3D
+var faded_ring_material: StandardMaterial3D
 var foliage_materials: Array[StandardMaterial3D] = []
 var rock_materials: Array[StandardMaterial3D] = []
 var landmark_materials: Array[StandardMaterial3D] = []
@@ -50,12 +77,22 @@ var trunk_mesh: CylinderMesh
 var foliage_mesh: SphereMesh
 var rock_mesh: SphereMesh
 var landmark_mesh: BoxMesh
+var giant_trunk_mesh: CylinderMesh
+var giant_canopy_mesh: SphereMesh
+var giant_pillar_mesh: BoxMesh
+var giant_monolith_mesh: BoxMesh
+var giant_ring_mesh: TorusMesh
 var trunk_shape: CylinderShape3D
 var rock_shape: BoxShape3D
 var landmark_shape: BoxShape3D
+var giant_trunk_shape: CylinderShape3D
+var giant_pillar_shape: BoxShape3D
+var giant_monolith_shape: BoxShape3D
 
 var chunk_prop_counts: Dictionary = {}
+var chunk_giant_counts: Dictionary = {}
 var active_prop_count: int = 0
+var active_giant_landmark_count: int = 0
 var animated_foliage: Array[Dictionary] = []
 var animated_landmarks: Array[Dictionary] = []
 var animation_time: float = 0.0
@@ -94,6 +131,12 @@ func create_shared_resources() -> void:
 	foliage_material = create_grass_material(foliage_color)
 	rock_material = create_grass_material(rock_color)
 	landmark_material = create_grass_material(landmark_color)
+	pale_stone_material = create_grass_material(Color(0.58, 0.59, 0.56))
+	dark_stone_material = create_grass_material(Color(0.25, 0.27, 0.28))
+	faded_ring_material = create_grass_material(Color(0.6, 0.63, 0.64))
+	faded_ring_material.emission_enabled = true
+	faded_ring_material.emission = Color(0.2, 0.23, 0.25)
+	faded_ring_material.emission_energy_multiplier = 0.18
 	foliage_materials = [
 		foliage_material,
 		create_grass_material(foliage_color.lightened(0.08)),
@@ -131,6 +174,30 @@ func create_shared_resources() -> void:
 	landmark_mesh = BoxMesh.new()
 	landmark_mesh.size = Vector3(2.5, 9.0, 2.5)
 
+	giant_trunk_mesh = CylinderMesh.new()
+	giant_trunk_mesh.top_radius = 2.4
+	giant_trunk_mesh.bottom_radius = 3.8
+	giant_trunk_mesh.height = 62.0
+	giant_trunk_mesh.radial_segments = 10
+
+	giant_canopy_mesh = SphereMesh.new()
+	giant_canopy_mesh.radius = 18.0
+	giant_canopy_mesh.height = 30.0
+	giant_canopy_mesh.radial_segments = 12
+	giant_canopy_mesh.rings = 6
+
+	giant_pillar_mesh = BoxMesh.new()
+	giant_pillar_mesh.size = Vector3(7.0, 120.0, 7.0)
+
+	giant_monolith_mesh = BoxMesh.new()
+	giant_monolith_mesh.size = Vector3(14.0, 90.0, 9.0)
+
+	giant_ring_mesh = TorusMesh.new()
+	giant_ring_mesh.inner_radius = 54.0
+	giant_ring_mesh.outer_radius = 60.0
+	giant_ring_mesh.rings = 48
+	giant_ring_mesh.ring_segments = 10
+
 	trunk_shape = CylinderShape3D.new()
 	trunk_shape.radius = 0.4
 	trunk_shape.height = 3.2
@@ -140,6 +207,16 @@ func create_shared_resources() -> void:
 
 	landmark_shape = BoxShape3D.new()
 	landmark_shape.size = Vector3(2.5, 9.0, 2.5)
+
+	giant_trunk_shape = CylinderShape3D.new()
+	giant_trunk_shape.radius = 3.4
+	giant_trunk_shape.height = 62.0
+
+	giant_pillar_shape = BoxShape3D.new()
+	giant_pillar_shape.size = Vector3(6.0, 20.0, 6.0)
+
+	giant_monolith_shape = BoxShape3D.new()
+	giant_monolith_shape.size = Vector3(10.0, 20.0, 7.0)
 
 
 func create_grass_material(color: Color) -> StandardMaterial3D:
@@ -207,18 +284,23 @@ func create_chunk(coordinate: Vector2i) -> void:
 	collision.shape = terrain_mesh.create_trimesh_shape()
 	chunk.add_child(collision)
 
-	var prop_count := create_chunk_props(chunk, coordinate)
+	var generated_counts: Vector2i = create_chunk_props(chunk, coordinate)
+	var prop_count: int = generated_counts.x
+	var giant_count: int = generated_counts.y
 
 	add_child(chunk)
 	active_chunks[coordinate] = chunk
 	chunk_prop_counts[coordinate] = prop_count
+	chunk_giant_counts[coordinate] = giant_count
 	active_prop_count += prop_count
+	active_giant_landmark_count += giant_count
 
 
-func create_chunk_props(chunk: StaticBody3D, coordinate: Vector2i) -> int:
+func create_chunk_props(chunk: StaticBody3D, coordinate: Vector2i) -> Vector2i:
 	var random := RandomNumberGenerator.new()
 	random.seed = get_chunk_prop_seed(coordinate)
 	var prop_count := 0
+	var giant_count := 0
 	var placed_positions: Array[Vector2] = []
 
 	for tree_index in range(trees_per_chunk):
@@ -246,12 +328,24 @@ func create_chunk_props(chunk: StaticBody3D, coordinate: Vector2i) -> int:
 					prop_count += 1
 
 	for rock_index in range(rocks_per_chunk):
-		var rock_position := get_random_prop_position(random, coordinate, placed_positions)
-		if (
+		var rock_size: float = get_rock_scale(random)
+		var rock_height: float = rock_size * 1.4
+		var rock_position: Vector3
+		if rock_height >= 8.0:
+			rock_position = get_large_rock_position(
+				random,
+				coordinate,
+				placed_positions,
+				rock_height
+			)
+		else:
+			rock_position = get_random_prop_position(random, coordinate, placed_positions)
+
+		if rock_position != Vector3.INF and (
 			is_spawn_area_clear(coordinate, rock_position)
 			and is_prop_spacing_clear(rock_position, placed_positions)
 		):
-			create_rock(chunk, rock_position, rock_index, random)
+			create_rock(chunk, rock_position, rock_index, random, rock_size)
 			placed_positions.append(Vector2(rock_position.x, rock_position.z))
 			prop_count += 1
 
@@ -265,7 +359,20 @@ func create_chunk_props(chunk: StaticBody3D, coordinate: Vector2i) -> int:
 			placed_positions.append(Vector2(landmark_position.x, landmark_position.z))
 			prop_count += 1
 
-	return prop_count
+	if is_giant_landmark_chunk(coordinate):
+		var force_placement: bool = is_guaranteed_ring_chunk(coordinate)
+		var giant_position: Vector3 = get_giant_landmark_position(
+			random,
+			coordinate,
+			placed_positions,
+			force_placement
+		)
+		if giant_position != Vector3.INF:
+			create_giant_landmark(chunk, giant_position, random, coordinate)
+			prop_count += 1
+			giant_count = 1
+
+	return Vector2i(prop_count, giant_count)
 
 
 func get_chunk_prop_seed(coordinate: Vector2i) -> int:
@@ -273,6 +380,139 @@ func get_chunk_prop_seed(coordinate: Vector2i) -> int:
 	mixed_seed ^= coordinate.x * 73856093
 	mixed_seed ^= coordinate.y * 19349663
 	return mixed_seed & 0x7fffffff
+
+
+func is_giant_landmark_chunk(coordinate: Vector2i) -> bool:
+	if is_guaranteed_ring_chunk(coordinate):
+		return true
+
+	var region := Vector2i(
+		floori(float(coordinate.x) / giant_region_size),
+		floori(float(coordinate.y) / giant_region_size)
+	)
+	var region_random := RandomNumberGenerator.new()
+	region_random.seed = get_chunk_prop_seed(region) ^ 0x35A71C
+	if region_random.randf() > giant_region_chance:
+		return false
+
+	var anchor := Vector2i(
+		region.x * giant_region_size + region_random.randi_range(0, giant_region_size - 1),
+		region.y * giant_region_size + region_random.randi_range(0, giant_region_size - 1)
+	)
+	return coordinate == anchor
+
+
+func is_guaranteed_ring_chunk(coordinate: Vector2i) -> bool:
+	return guarantee_nearby_test_ring and coordinate == guaranteed_ring_chunk
+
+
+func get_giant_landmark_position(
+	random: RandomNumberGenerator,
+	coordinate: Vector2i,
+	placed_positions: Array[Vector2],
+	force_placement: bool = false
+) -> Vector3:
+	var half_size: float = chunk_size * 0.5
+	var placement_margin: float = 32.0
+	var best_position := Vector3.INF
+	var best_score: float = -INF
+
+	for _attempt in range(18):
+		var candidate := Vector3(
+			random.randf_range(-half_size + placement_margin, half_size - placement_margin),
+			0.0,
+			random.randf_range(-half_size + placement_margin, half_size - placement_margin)
+		)
+		var world_x: float = coordinate.x * chunk_size + candidate.x
+		var world_z: float = coordinate.y * chunk_size + candidate.z
+		candidate.y = sample_height(world_x, world_z)
+
+		if Vector2(world_x, world_z).length() < giant_start_clear_radius:
+			continue
+		if not is_prop_spacing_clear(candidate, placed_positions, giant_prop_clearance):
+			continue
+		if not is_giant_site_suitable(world_x, world_z, candidate.y):
+			continue
+
+		var ridge_score: float = get_ridge_score(world_x, world_z, candidate.y)
+		if ridge_score > best_score:
+			best_score = ridge_score
+			best_position = candidate
+
+	if best_position != Vector3.INF or not force_placement:
+		return best_position
+
+	# The guaranteed test ring has no collision. If the ridge search is rejected,
+	# keep it visible by falling back to the center of its streamed chunk.
+	var fallback := Vector3.ZERO
+	var fallback_world_x: float = coordinate.x * chunk_size
+	var fallback_world_z: float = coordinate.y * chunk_size
+	fallback.y = sample_height(fallback_world_x, fallback_world_z)
+	return fallback
+
+
+func is_giant_site_suitable(world_x: float, world_z: float, center_height: float) -> bool:
+	var sample_offset: float = 10.0
+	var maximum_height_change: float = 5.0
+	var offsets: Array[Vector2] = [
+		Vector2(sample_offset, 0.0),
+		Vector2(-sample_offset, 0.0),
+		Vector2(0.0, sample_offset),
+		Vector2(0.0, -sample_offset),
+	]
+	for offset in offsets:
+		var nearby_height: float = sample_height(world_x + offset.x, world_z + offset.y)
+		if absf(nearby_height - center_height) > maximum_height_change:
+			return false
+	return true
+
+
+func get_ridge_score(world_x: float, world_z: float, center_height: float) -> float:
+	var sample_offset: float = 24.0
+	var surrounding_height: float = (
+		sample_height(world_x + sample_offset, world_z)
+		+ sample_height(world_x - sample_offset, world_z)
+		+ sample_height(world_x, world_z + sample_offset)
+		+ sample_height(world_x, world_z - sample_offset)
+	) * 0.25
+	return center_height - surrounding_height + center_height * 0.08
+
+
+func get_large_rock_position(
+	random: RandomNumberGenerator,
+	coordinate: Vector2i,
+	placed_positions: Array[Vector2],
+	rock_height: float
+) -> Vector3:
+	var half_size: float = chunk_size * 0.5
+	var placement_margin: float = 28.0
+	var required_clearance: float = 60.0 if rock_height >= 25.0 else 28.0
+	var start_clearance: float = giant_start_clear_radius if rock_height >= 25.0 else 120.0
+	var best_position := Vector3.INF
+	var best_score: float = -INF
+
+	for _attempt in range(14):
+		var candidate := Vector3(
+			random.randf_range(-half_size + placement_margin, half_size - placement_margin),
+			0.0,
+			random.randf_range(-half_size + placement_margin, half_size - placement_margin)
+		)
+		var world_x: float = coordinate.x * chunk_size + candidate.x
+		var world_z: float = coordinate.y * chunk_size + candidate.z
+		candidate.y = sample_height(world_x, world_z)
+		if Vector2(world_x, world_z).length() < start_clearance:
+			continue
+		if not is_prop_spacing_clear(candidate, placed_positions, required_clearance):
+			continue
+		if not is_giant_site_suitable(world_x, world_z, candidate.y):
+			continue
+
+		var score: float = get_ridge_score(world_x, world_z, candidate.y)
+		if score > best_score:
+			best_score = score
+			best_position = candidate
+
+	return best_position
 
 
 func get_random_prop_position(
@@ -334,6 +574,197 @@ func is_prop_spacing_clear(
 	return true
 
 
+func create_giant_landmark(
+	chunk: StaticBody3D,
+	base_position: Vector3,
+	random: RandomNumberGenerator,
+	coordinate: Vector2i
+) -> void:
+	var form_type: int
+	if is_guaranteed_ring_chunk(coordinate):
+		form_type = 3
+	elif random.randf() < giant_tree_chance:
+		form_type = 0
+	else:
+		form_type = random.randi_range(1, 3)
+	match form_type:
+		0:
+			create_solitary_giant_tree(chunk, base_position, random)
+		1:
+			create_pale_stone_pillar(chunk, base_position, random)
+		2:
+			create_tilted_monolith(chunk, base_position, random)
+		_:
+			create_horizon_ring(chunk, base_position, random)
+
+
+func create_solitary_giant_tree(
+	chunk: StaticBody3D,
+	base_position: Vector3,
+	random: RandomNumberGenerator
+) -> void:
+	var target_height: float = get_revelation_tree_height(random)
+	var base_giant_tree_height: float = 88.0
+	var giant_tree_scale: float = target_height / base_giant_tree_height
+	var giant_tree := Node3D.new()
+	giant_tree.name = "Revelation_GiantTree"
+	giant_tree.position = base_position
+	giant_tree.rotation.y = random.randf_range(-PI, PI)
+	giant_tree.scale = Vector3.ONE * giant_tree_scale
+
+	var trunk := MeshInstance3D.new()
+	trunk.name = "Trunk"
+	trunk.position.y = 31.0
+	trunk.mesh = giant_trunk_mesh
+	trunk.material_override = trunk_material
+	giant_tree.add_child(trunk)
+
+	var main_canopy := create_giant_canopy(
+		"MainCanopy",
+		Vector3(0.0, 73.0, 0.0),
+		Vector3(1.0, 1.0, 1.0),
+		random
+	)
+	giant_tree.add_child(main_canopy)
+	giant_tree.add_child(create_giant_canopy(
+		"SideCanopyA",
+		Vector3(-11.0, 67.0, 4.0),
+		Vector3(0.72, 0.78, 0.72),
+		random
+	))
+	giant_tree.add_child(create_giant_canopy(
+		"SideCanopyB",
+		Vector3(10.0, 69.0, -5.0),
+		Vector3(0.65, 0.72, 0.65),
+		random
+	))
+	chunk.add_child(giant_tree)
+	animated_foliage.append({
+		"node": main_canopy,
+		"phase": random.randf_range(0.0, TAU),
+		"strength": 0.012,
+	})
+
+	var collision := CollisionShape3D.new()
+	collision.name = "GiantTreeCollision"
+	collision.position = base_position + Vector3.UP * 31.0 * giant_tree_scale
+	collision.shape = giant_trunk_shape
+	collision.scale = Vector3.ONE * giant_tree_scale
+	chunk.add_child(collision)
+
+
+func get_revelation_tree_height(random: RandomNumberGenerator) -> float:
+	if random.randf() < world_tree_chance:
+		return max_giant_tree_height
+	return random.randf_range(
+		max_giant_tree_height * 0.58,
+		max_giant_tree_height * 0.85
+	)
+
+
+func create_giant_canopy(
+	canopy_name: String,
+	canopy_position: Vector3,
+	canopy_scale: Vector3,
+	random: RandomNumberGenerator
+) -> MeshInstance3D:
+	var canopy := MeshInstance3D.new()
+	canopy.name = canopy_name
+	canopy.position = canopy_position
+	canopy.rotation.y = random.randf_range(-PI, PI)
+	canopy.scale = canopy_scale
+	canopy.mesh = giant_canopy_mesh
+	canopy.material_override = foliage_materials[
+		random.randi_range(0, foliage_materials.size() - 1)
+	]
+	return canopy
+
+
+func create_pale_stone_pillar(
+	chunk: StaticBody3D,
+	base_position: Vector3,
+	random: RandomNumberGenerator
+) -> void:
+	var target_height: float = random.randf_range(min_pillar_height, max_pillar_height)
+	var height_scale: float = target_height / 120.0
+	var width_scale: float = random.randf_range(0.82, 1.2)
+	var depth_scale: float = random.randf_range(0.82, 1.2)
+	var pillar := MeshInstance3D.new()
+	pillar.name = "Revelation_PalePillar"
+	pillar.position = base_position + Vector3.UP * target_height * 0.5
+	pillar.rotation.y = random.randf_range(-PI, PI)
+	pillar.rotation.z = random.randf_range(-0.02, 0.02)
+	pillar.scale = Vector3(width_scale, height_scale, depth_scale)
+	pillar.mesh = giant_pillar_mesh
+	pillar.material_override = pale_stone_material
+	chunk.add_child(pillar)
+
+	var collision := CollisionShape3D.new()
+	collision.name = "PalePillarCollision"
+	collision.position = base_position + Vector3.UP * 10.0
+	collision.rotation.y = pillar.rotation.y
+	collision.shape = giant_pillar_shape
+	collision.scale = Vector3(
+		minf(width_scale, 1.0),
+		1.0,
+		minf(depth_scale, 1.0)
+	)
+	chunk.add_child(collision)
+
+
+func create_tilted_monolith(
+	chunk: StaticBody3D,
+	base_position: Vector3,
+	random: RandomNumberGenerator
+) -> void:
+	var target_height: float = random.randf_range(min_monolith_height, max_monolith_height)
+	var height_scale: float = target_height / 90.0
+	var width_scale: float = random.randf_range(0.78, 1.28)
+	var depth_scale: float = random.randf_range(0.82, 1.22)
+	var monolith := MeshInstance3D.new()
+	monolith.name = "Revelation_TiltedMonolith"
+	monolith.position = base_position + Vector3.UP * target_height * 0.46
+	monolith.rotation.y = random.randf_range(-PI, PI)
+	monolith.rotation.z = random.randf_range(-0.12, 0.12)
+	monolith.scale = Vector3(width_scale, height_scale, depth_scale)
+	monolith.mesh = giant_monolith_mesh
+	monolith.material_override = dark_stone_material
+	chunk.add_child(monolith)
+
+	var collision := CollisionShape3D.new()
+	collision.name = "TiltedMonolithCollision"
+	collision.position = base_position + Vector3.UP * 10.0
+	collision.rotation.y = monolith.rotation.y
+	collision.shape = giant_monolith_shape
+	collision.scale = Vector3(
+		minf(width_scale, 1.0),
+		1.0,
+		minf(depth_scale, 1.0)
+	)
+	chunk.add_child(collision)
+
+
+func create_horizon_ring(
+	chunk: StaticBody3D,
+	base_position: Vector3,
+	_random: RandomNumberGenerator
+) -> void:
+	var ring := MeshInstance3D.new()
+	ring.name = "Revelation_HorizonRing"
+	ring.position = base_position + Vector3.UP * 62.0
+	var ring_world_position: Vector3 = chunk.position + ring.position
+	var facing_direction := Vector3(
+		-ring_world_position.x,
+		0.0,
+		-ring_world_position.z
+	).normalized()
+	var facing_yaw: float = atan2(facing_direction.x, facing_direction.z)
+	ring.rotation = Vector3(PI * 0.5, facing_yaw, 0.0)
+	ring.mesh = giant_ring_mesh
+	ring.material_override = faded_ring_material
+	chunk.add_child(ring)
+
+
 func create_tree(
 	chunk: StaticBody3D,
 	base_position: Vector3,
@@ -378,30 +809,49 @@ func create_tree(
 
 func get_tree_scale(random: RandomNumberGenerator) -> float:
 	var size_roll: float = random.randf()
-	if size_roll < 0.12:
-		return random.randf_range(0.75, 1.0)
-	if size_roll < 0.72:
-		return random.randf_range(1.15, 1.65)
-	if size_roll < 0.95:
-		return random.randf_range(1.8, 2.45)
-	return random.randf_range(2.8, 3.4)
+	var target_height: float
+	var ordinary_height_ceiling: float = maxf(min_tree_height, max_giant_tree_height * 0.1)
+	var tall_height_ceiling: float = maxf(
+		ordinary_height_ceiling,
+		max_giant_tree_height * 0.22
+	)
+	var large_height_ceiling: float = maxf(
+		tall_height_ceiling,
+		max_giant_tree_height * large_tree_height_ratio
+	)
+
+	if size_roll < 0.58:
+		target_height = random.randf_range(min_tree_height, ordinary_height_ceiling)
+	elif size_roll < 0.9:
+		target_height = random.randf_range(ordinary_height_ceiling, tall_height_ceiling)
+	elif size_roll < 0.95:
+		target_height = random.randf_range(tall_height_ceiling, large_height_ceiling * 0.72)
+	else:
+		target_height = random.randf_range(large_height_ceiling * 0.72, large_height_ceiling)
+
+	# The regular tree primitive reaches 5.7 meters at scale 1.0.
+	return target_height / 5.7
 
 
 func create_rock(
 	chunk: StaticBody3D,
 	base_position: Vector3,
 	index: int,
-	random: RandomNumberGenerator
+	random: RandomNumberGenerator,
+	rock_size: float
 ) -> void:
 	var rock := MeshInstance3D.new()
-	var rock_size: float = get_rock_scale(random)
+	var target_height: float = rock_size * 1.4
+	var is_large_boulder: bool = target_height >= 8.0
+	var horizontal_min: float = 1.15 if is_large_boulder else 0.85
+	var horizontal_max: float = 1.75 if is_large_boulder else 1.35
 	var rock_scale := Vector3(
-		rock_size * random.randf_range(0.82, 1.18),
-		rock_size * random.randf_range(0.72, 1.08),
-		rock_size * random.randf_range(0.82, 1.18)
+		rock_size * random.randf_range(horizontal_min, horizontal_max),
+		rock_size * random.randf_range(0.85, 1.05),
+		rock_size * random.randf_range(horizontal_min * 0.9, horizontal_max * 0.92)
 	)
 	rock.name = "Rock_%d" % index
-	rock.position = base_position + Vector3(0.0, 0.7 * rock_scale.y, 0.0)
+	rock.position = base_position + Vector3(0.0, 0.52 * rock_scale.y, 0.0)
 	rock.rotation.y = random.randf_range(-PI, PI)
 	rock.rotation.z = random.randf_range(-0.12, 0.12)
 	rock.scale = rock_scale
@@ -411,21 +861,33 @@ func create_rock(
 
 	var collision := CollisionShape3D.new()
 	collision.name = "RockCollision_%d" % index
-	collision.position = base_position + Vector3(0.0, 0.5 * rock_scale.y, 0.0)
 	collision.shape = rock_shape
-	collision.scale = rock_scale
+	if is_large_boulder:
+		var base_collision_scale := Vector3(
+			rock_scale.x * 0.72,
+			minf(rock_scale.y * 0.35, 8.0),
+			rock_scale.z * 0.72
+		)
+		collision.position = base_position + Vector3.UP * base_collision_scale.y * 0.5
+		collision.scale = base_collision_scale
+	else:
+		collision.position = base_position + Vector3.UP * rock_scale.y * 0.5
+		collision.scale = rock_scale
 	chunk.add_child(collision)
 
 
 func get_rock_scale(random: RandomNumberGenerator) -> float:
 	var size_roll: float = random.randf()
-	if size_roll < 0.18:
-		return random.randf_range(0.7, 1.0)
-	if size_roll < 0.72:
-		return random.randf_range(1.2, 1.8)
-	if size_roll < 0.95:
-		return random.randf_range(2.0, 2.8)
-	return random.randf_range(3.2, 4.2)
+	var target_height: float
+	if size_roll < monumental_boulder_chance:
+		target_height = random.randf_range(25.0, max_monumental_boulder_height)
+	elif size_roll < monumental_boulder_chance + large_boulder_chance:
+		target_height = random.randf_range(8.0, 20.0)
+	elif size_roll < 0.58:
+		target_height = random.randf_range(1.0, 3.2)
+	else:
+		target_height = random.randf_range(3.2, 7.5)
+	return target_height / 1.4
 
 
 func create_landmark(
@@ -566,7 +1028,9 @@ func remove_chunk(coordinate: Vector2i) -> void:
 	var chunk: StaticBody3D = active_chunks[coordinate]
 	remove_chunk_animation_entries(chunk)
 	active_prop_count -= chunk_prop_counts.get(coordinate, 0)
+	active_giant_landmark_count -= chunk_giant_counts.get(coordinate, 0)
 	chunk_prop_counts.erase(coordinate)
+	chunk_giant_counts.erase(coordinate)
 	active_chunks.erase(coordinate)
 	chunk.queue_free()
 
@@ -593,3 +1057,7 @@ func get_active_chunk_count() -> int:
 
 func get_active_prop_count() -> int:
 	return active_prop_count
+
+
+func get_active_giant_landmark_count() -> int:
+	return active_giant_landmark_count

@@ -40,6 +40,8 @@ Dream Signal Guidance + Prop Scale Pass 01 adds a minimal off-screen signal indi
 
 Atmosphere Mood States Pass 01 adds five faded sky, fog, lighting, and mote moods with gentle transitions and `F4` developer cycling.
 
+Giant Forms / Revelation Landmarks Pass 01 adds rare deterministic giant trees, pale pillars, tilted monoliths, and horizon rings placed as distant ridge-scale silhouettes.
+
 ### Next Milestone
 
 **Web Atmosphere Smoke Test:** verify the larger scene, procedural sky, fog, lighting, and shadows in the browser before adding more world detail.
