@@ -30,6 +30,7 @@ DreamRunner is a browser-first third-person dream-running game built in Godot 4 
 - Spawn clearance and spacing rules preserve open sprint lanes near the starting area.
 - Centralized gentle canopy sway and landmark pulsing.
 - Lightweight dream atmosphere with 48 drifting/recycled motes rendered in one `MultiMesh`.
+- Five environmental mood states smoothly control sky, fog, ambient light, directional light, and mote color/intensity.
 - One active primitive-based dream signal with terrain-aware placement, slope checks, glow, pulse, orb, rings, and a long-distance beam.
 - The signal brightens when the player travels far away; the player is not punished or forcibly redirected.
 
@@ -40,7 +41,8 @@ DreamRunner is a browser-first third-person dream-running game built in Godot 4 
 - Minimal normal-play hint: "Follow the dream signal".
 - Off-screen signal arrow and distance label, hidden when the signal is visible or the mouse is released.
 - Debug HUD toggled with `F3`; hidden by default for a cleaner presentation.
-- Debug information includes movement state, speed, vertical velocity, sprint/glide state, mouse status, current chunk, active chunks, active props, dream motes, and destination distance.
+- `F4` cycles Pale Dawn, Cold Overcast, Golden Dissolve, Blue Liminal Night, and Dust Haze Afternoon for development testing.
+- Debug information includes movement state, speed, vertical velocity, sprint/glide state, mouse status, current chunk, active chunks, active props, dream motes, current mood, and destination distance.
 
 ## Current browser/export status
 
@@ -59,7 +61,7 @@ DreamRunner is a browser-first third-person dream-running game built in Godot 4 
 - `res://scenes/ProceduralTest.tscn` - preserved procedural sandbox.
 - `res://scripts/player_controller.gd` - movement, sprint, jump, glide, slopes, camera, pointer lock, and reset.
 - `res://scripts/terrain_chunk_manager.gd` - terrain generation, chunk streaming, props, collisions, shared materials, and environmental motion.
-- `res://scripts/dream_atmosphere.gd` - batched drifting dream motes around the player.
+- `res://scripts/dream_atmosphere.gd` - batched drifting dream motes and interpolated environmental mood states.
 - `res://scripts/dream_destination_manager.gd` - active destination placement, visual marker, trigger response, regeneration, and lost-player brightness.
 - `res://scripts/dream_signal_guidance.gd` - off-screen direction arrow and signal distance.
 - `res://scripts/debug_hud.gd` - `F3` diagnostics and runtime counters.
@@ -74,7 +76,7 @@ DreamRunner is a browser-first third-person dream-running game built in Godot 4 
 - Stable movement feel, sprint speed, high jump, glide, air control, and slope behavior.
 - Smooth camera follow, pitch limits, spring arm, FOV response, and jitter fixes.
 - Browser click-to-capture, `Esc` release, and click-to-recapture behavior.
-- `R` reset, start overlay, off-screen guidance, and `F3` debug toggle.
+- `R` reset, start overlay, off-screen guidance, `F3` debug toggle, and `F4` mood cycling.
 - Procedural terrain seams, collision orientation, deterministic generation, and chunk recycling.
 - Open sprint lanes and safe starting-area clearance.
 - Dream destination placement, triggering, regeneration, and guidance.

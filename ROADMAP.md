@@ -38,6 +38,8 @@ Dream Trail / Destination Pass 01 adds a soft exploration loop: follow a distant
 
 Dream Signal Guidance + Prop Scale Pass 01 adds a minimal off-screen signal indicator, a stronger long-distance beam, and broader seeded tree and rock size variation with rare giant silhouettes.
 
+Atmosphere Mood States Pass 01 adds five faded sky, fog, lighting, and mote moods with gentle transitions and `F4` developer cycling.
+
 ### Next Milestone
 
 **Web Atmosphere Smoke Test:** verify the larger scene, procedural sky, fog, lighting, and shadows in the browser before adding more world detail.
