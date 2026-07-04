@@ -4,13 +4,17 @@ extends Node3D
 @export var camera_path: NodePath
 @export var terrain_manager_path: NodePath
 @export_range(200.0, 500.0, 10.0) var minimum_distance: float = 320.0
-@export_range(300.0, 800.0, 10.0) var preferred_distance_min: float = 480.0
-@export_range(500.0, 1000.0, 10.0) var preferred_distance_max: float = 720.0
-@export_range(700.0, 1200.0, 25.0) var far_distance_min: float = 900.0
-@export_range(900.0, 1400.0, 25.0) var far_distance_max: float = 1100.0
+@export_range(300.0, 800.0, 10.0) var preferred_distance_min: float = 520.0
+@export_range(500.0, 1000.0, 10.0) var preferred_distance_max: float = 850.0
+@export_range(700.0, 1200.0, 25.0) var far_distance_min: float = 1000.0
+@export_range(900.0, 1400.0, 25.0) var far_distance_max: float = 1200.0
 @export_range(0.0, 0.3, 0.01) var far_destination_chance: float = 0.1
 @export_range(45.0, 90.0, 5.0) var preferred_forward_cone_degrees: float = 70.0
 @export_range(90.0, 130.0, 5.0) var fallback_forward_cone_degrees: float = 110.0
+@export var lateral_offset_min_degrees: float = 18.0
+@export var lateral_offset_max_degrees: float = 55.0
+@export var wide_lateral_offset_degrees: float = 80.0
+@export var wide_lateral_chance: float = 0.18
 @export_range(200.0, 500.0, 10.0) var previous_destination_clearance: float = 350.0
 @export_range(2.0, 12.0, 0.5) var reach_radius: float = 6.0
 @export_range(1.0, 8.0, 0.5) var height_above_ground: float = 4.0
@@ -38,12 +42,17 @@ var has_travel_direction: bool = false
 var has_active_destination: bool = false
 var current_destination_is_far: bool = false
 var placement_mode: String = "Forward"
+var journey_heading := Vector3.FORWARD
+var current_direction_offset_degrees: float = 0.0
+var straight_destination_streak: int = 0
+var last_lateral_sign: float = 1.0
 
 
 func _ready() -> void:
 	random.seed = 91027
 	create_destination_visual()
 	previous_player_position = player.global_position
+	journey_heading = get_preferred_direction()
 	place_new_destination()
 
 
@@ -147,7 +156,7 @@ func place_new_destination() -> void:
 
 
 func find_destination_position() -> Vector3:
-	var forward: Vector3 = get_preferred_direction()
+	var forward: Vector3 = journey_heading
 	current_destination_is_far = random.randf() < far_destination_chance
 	if current_composition_name == "Horizon Call":
 		current_destination_is_far = random.randf() < 0.35
@@ -158,7 +167,7 @@ func find_destination_position() -> Vector3:
 		32
 	)
 	if preferred_position != Vector3.INF:
-		placement_mode = "Forward"
+		set_selected_path_debug(forward, preferred_position, false)
 		return preferred_position
 
 	var fallback_position: Vector3 = find_best_forward_candidate(
@@ -167,7 +176,7 @@ func find_destination_position() -> Vector3:
 		20
 	)
 	if fallback_position != Vector3.INF:
-		placement_mode = "Wide Fallback"
+		set_selected_path_debug(forward, fallback_position, true)
 		return fallback_position
 
 	placement_mode = "Direct Fallback"
@@ -205,6 +214,8 @@ func find_best_forward_candidate(
 		candidate_direction = candidate_direction.normalized()
 		var forward_alignment: float = forward.dot(candidate_direction)
 		if forward_alignment < minimum_forward_dot:
+			continue
+		if has_travel_direction and last_travel_direction.dot(candidate_direction) < cos(deg_to_rad(85.0)):
 			continue
 		if (
 			last_destination_position != Vector3.INF
@@ -285,16 +296,24 @@ func create_forward_candidate(forward: Vector3, half_angle_radians: float) -> Ve
 		minimum_candidate_distance = far_distance_min
 		maximum_candidate_distance = far_distance_max
 	elif current_composition_name == "Ridge Reveal":
-		minimum_candidate_distance = 420.0
-		maximum_candidate_distance = 680.0
+		minimum_candidate_distance = 520.0
+		maximum_candidate_distance = 820.0
 	elif current_composition_name == "Liminal Clearing":
-		minimum_candidate_distance = 400.0
-		maximum_candidate_distance = 650.0
+		minimum_candidate_distance = 500.0
+		maximum_candidate_distance = 780.0
 	elif current_composition_name == "Horizon Call":
 		minimum_candidate_distance = 650.0
 		maximum_candidate_distance = 900.0
 
-	var angle: float = random.randf_range(-half_angle_radians, half_angle_radians)
+	var maximum_offset: float = minf(half_angle_radians, deg_to_rad(lateral_offset_max_degrees))
+	if random.randf() < wide_lateral_chance:
+		maximum_offset = minf(half_angle_radians, deg_to_rad(wide_lateral_offset_degrees))
+	var minimum_offset: float = deg_to_rad(32.0 if straight_destination_streak >= 2 else lateral_offset_min_degrees)
+	minimum_offset = minf(minimum_offset, maximum_offset)
+	var lateral_sign: float = -1.0 if random.randf() < 0.5 else 1.0
+	if random.randf() < 0.65:
+		lateral_sign = -last_lateral_sign
+	var angle: float = random.randf_range(minimum_offset, maximum_offset) * lateral_sign
 	var direction: Vector3 = forward.rotated(Vector3.UP, angle).normalized()
 	var distance: float = random.randf_range(
 		minimum_candidate_distance,
@@ -314,7 +333,29 @@ func get_flow_score(
 		else (preferred_distance_min + preferred_distance_max) * 0.5
 	)
 	var distance_score: float = -absf(candidate_distance - preferred_center) * 0.025
-	return forward_alignment * 120.0 + distance_score
+	var offset_degrees: float = rad_to_deg(acos(clampf(forward_alignment, -1.0, 1.0)))
+	var lateral_center: float = (lateral_offset_min_degrees + lateral_offset_max_degrees) * 0.5
+	return forward_alignment * 22.0 - absf(offset_degrees - lateral_center) * 0.7 + distance_score
+
+
+func set_selected_path_debug(forward: Vector3, position: Vector3, fallback: bool) -> void:
+	var direction: Vector3 = position - player.global_position
+	direction.y = 0.0
+	direction = direction.normalized()
+	current_direction_offset_degrees = rad_to_deg(forward.signed_angle_to(direction, Vector3.UP))
+	var absolute_offset: float = absf(current_direction_offset_degrees)
+	placement_mode = "Fallback Arc" if fallback else ("Wide Lateral Arc" if absolute_offset > lateral_offset_max_degrees else "Lateral Arc")
+	straight_destination_streak = straight_destination_streak + 1 if absolute_offset < 12.0 else 0
+	if absolute_offset > 0.1:
+		last_lateral_sign = signf(current_direction_offset_degrees)
+
+
+func advance_journey_heading() -> void:
+	var base_heading: Vector3 = journey_heading
+	if has_travel_direction:
+		base_heading = base_heading.slerp(last_travel_direction, 0.35).normalized()
+	var turn_sign: float = -last_lateral_sign if random.randf() < 0.65 else last_lateral_sign
+	journey_heading = base_heading.rotated(Vector3.UP, deg_to_rad(random.randf_range(10.0, 28.0) * turn_sign)).normalized()
 
 
 func get_composition_score(candidate: Vector3) -> float:
@@ -419,6 +460,7 @@ func begin_destination_response() -> void:
 	is_resolving = true
 	response_time = 0.0
 	destinations_reached += 1
+	advance_journey_heading()
 
 
 func update_destination_response(delta: float) -> void:
@@ -454,3 +496,7 @@ func get_current_composition_name() -> String:
 
 func get_placement_mode() -> String:
 	return placement_mode
+
+
+func get_direction_offset_degrees() -> float:
+	return current_direction_offset_degrees

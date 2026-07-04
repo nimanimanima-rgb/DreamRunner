@@ -12,6 +12,8 @@ DreamRunner is a browser-first third-person dream-running game built in Godot 4 
 
 ## Current gameplay systems
 
+Dream signal placement is flow-first but no longer linear: a persistent journey heading turns gently between destinations, while controlled lateral arcs create long, recoverable left/right variations without backtracking.
+
 - Third-person WASD movement with stable acceleration and deceleration.
 - High-speed sprinting with speed-based camera FOV.
 - High jump, air control, and glide/float while descending.

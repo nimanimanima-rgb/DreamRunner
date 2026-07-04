@@ -1,5 +1,11 @@
 # Dream Runner Roadmap
 
+## Dream Signal Path Variation Pass 01
+
+- Dream destinations now follow a gently turning persistent journey heading.
+- Controlled lateral and occasional wider arcs preserve long forward travel while avoiding straight-line repetition.
+- Debug HUD reports placement mode and direction offset.
+
 ## Phase 0 — Setup
 
 - [x] Install Git
