@@ -239,10 +239,10 @@ func create_shared_resources() -> void:
 	giant_trunk_shape.height = 62.0
 
 	giant_pillar_shape = BoxShape3D.new()
-	giant_pillar_shape.size = Vector3(6.0, 20.0, 6.0)
+	giant_pillar_shape.size = Vector3(7.0, 120.0, 7.0)
 
 	giant_monolith_shape = BoxShape3D.new()
-	giant_monolith_shape.size = Vector3(10.0, 20.0, 7.0)
+	giant_monolith_shape.size = Vector3(14.0, 90.0, 9.0)
 
 
 func create_grass_material(color: Color) -> StandardMaterial3D:
@@ -821,13 +821,13 @@ func create_pale_stone_pillar(
 	if add_collision:
 		var collision := CollisionShape3D.new()
 		collision.name = "PalePillarCollision"
-		collision.position = base_position + Vector3.UP * 10.0
-		collision.rotation.y = pillar.rotation.y
+		collision.position = pillar.position
+		collision.rotation = pillar.rotation
 		collision.shape = giant_pillar_shape
 		collision.scale = Vector3(
-			minf(width_scale, 1.0),
-			1.0,
-			minf(depth_scale, 1.0)
+			width_scale * 0.9,
+			height_scale,
+			depth_scale * 0.9
 		)
 		chunk.add_child(collision)
 
@@ -855,13 +855,13 @@ func create_tilted_monolith(
 	if add_collision:
 		var collision := CollisionShape3D.new()
 		collision.name = "TiltedMonolithCollision"
-		collision.position = base_position + Vector3.UP * 10.0
-		collision.rotation.y = monolith.rotation.y
+		collision.position = monolith.position
+		collision.rotation = monolith.rotation
 		collision.shape = giant_monolith_shape
 		collision.scale = Vector3(
-			minf(width_scale, 1.0),
-			1.0,
-			minf(depth_scale, 1.0)
+			width_scale * 0.9,
+			height_scale,
+			depth_scale * 0.9
 		)
 		chunk.add_child(collision)
 

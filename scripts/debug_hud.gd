@@ -72,9 +72,9 @@ func _process(_delta: float) -> void:
 		if horizontal_speed < 0.1:
 			movement_mode = "Idle"
 		elif sprinting:
-			movement_mode = "Sprint"
+			movement_mode = "Sprinting"
 		else:
-			movement_mode = "Run"
+			movement_mode = "Running"
 
 	readout.text = (
 		"Speed: %5.1f m/s\n" % horizontal_speed
@@ -83,6 +83,8 @@ func _process(_delta: float) -> void:
 		+ "Sprinting: %s\n" % str(sprinting)
 		+ "Gliding: %s\n" % str(gliding)
 		+ "Mode: %s\n" % movement_mode
+		+ "Ground clearance: %4.1f m\n" % float(player.call("get_ground_clearance"))
+		+ "Glide pose: %3.0f%%\n" % (float(player.call("get_glide_pose_blend")) * 100.0)
 		+ mouse_hint
 		+ terrain_text
 	)
