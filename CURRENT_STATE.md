@@ -33,6 +33,7 @@ DreamRunner is a browser-first third-person dream-running game built in Godot 4 
 - Centralized gentle canopy sway and landmark pulsing.
 - Lightweight dream atmosphere with 48 drifting/recycled motes rendered in one `MultiMesh`.
 - Five environmental mood states smoothly control sky, fog, ambient light, directional light, and mote color/intensity.
+- Mood palettes are tuned for distinct dawn calm, cold overcast weight, rare golden revelation, playable blue night, and washed travel haze.
 - One active primitive-based dream signal with terrain-aware placement, slope checks, glow, pulse, orb, rings, and a long-distance beam.
 - The signal brightens when the player travels far away; the player is not punished or forcibly redirected.
 

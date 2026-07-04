@@ -44,6 +44,8 @@ Giant Forms / Revelation Landmarks Pass 01 adds rare deterministic giant trees, 
 
 Distant Landmark Visibility Pass 01 keeps lightweight, non-colliding giant-form silhouettes active beyond the full terrain grid and tunes mood haze for long-distance readability.
 
+Atmosphere Mood Tuning Pass 02 strengthens the emotional contrast between dawn, overcast, golden, night, and dust-haze states while preserving distant silhouettes.
+
 ### Next Milestone
 
 **Web Atmosphere Smoke Test:** verify the larger scene, procedural sky, fog, lighting, and shadows in the browser before adding more world detail.
