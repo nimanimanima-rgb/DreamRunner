@@ -78,37 +78,51 @@ position = Vector3(0, 0.9, 0)
 
 [node name="PosePivot" type="Node3D" parent="Player/VisualPivot"]
 
-[node name="Torso" type="MeshInstance3D" parent="Player/VisualPivot/PosePivot"]
+[node name="MotionPivot" type="Node3D" parent="Player/VisualPivot/PosePivot"]
+
+[node name="Torso" type="MeshInstance3D" parent="Player/VisualPivot/PosePivot/MotionPivot"]
 position = Vector3(0, 0.15, 0)
 material_override = SubResource("PlayerMaterial")
 mesh = SubResource("PlayerTorsoMesh")
 
-[node name="Head" type="MeshInstance3D" parent="Player/VisualPivot/PosePivot"]
+[node name="Head" type="MeshInstance3D" parent="Player/VisualPivot/PosePivot/MotionPivot"]
 position = Vector3(0, 0.84, -0.035)
 material_override = SubResource("PlayerAccentMaterial")
 mesh = SubResource("PlayerHeadMesh")
 
-[node name="LeftArm" type="MeshInstance3D" parent="Player/VisualPivot/PosePivot"]
-position = Vector3(-0.39, 0.12, 0)
+[node name="LeftArmPivot" type="Node3D" parent="Player/VisualPivot/PosePivot/MotionPivot"]
+position = Vector3(-0.35, 0.44, 0)
 rotation = Vector3(0, 0, -0.14)
+
+[node name="LeftArm" type="MeshInstance3D" parent="Player/VisualPivot/PosePivot/MotionPivot/LeftArmPivot"]
+position = Vector3(0, -0.34, 0)
 material_override = SubResource("PlayerMaterial")
 mesh = SubResource("PlayerArmMesh")
 
-[node name="RightArm" type="MeshInstance3D" parent="Player/VisualPivot/PosePivot"]
-position = Vector3(0.39, 0.12, 0)
+[node name="RightArmPivot" type="Node3D" parent="Player/VisualPivot/PosePivot/MotionPivot"]
+position = Vector3(0.35, 0.44, 0)
 rotation = Vector3(0, 0, 0.14)
+
+[node name="RightArm" type="MeshInstance3D" parent="Player/VisualPivot/PosePivot/MotionPivot/RightArmPivot"]
+position = Vector3(0, -0.34, 0)
 material_override = SubResource("PlayerMaterial")
 mesh = SubResource("PlayerArmMesh")
 
-[node name="LeftLeg" type="MeshInstance3D" parent="Player/VisualPivot/PosePivot"]
-position = Vector3(-0.16, -0.65, 0)
+[node name="LeftLegPivot" type="Node3D" parent="Player/VisualPivot/PosePivot/MotionPivot"]
+position = Vector3(-0.16, -0.31, 0)
 rotation = Vector3(0, 0, -0.045)
+
+[node name="LeftLeg" type="MeshInstance3D" parent="Player/VisualPivot/PosePivot/MotionPivot/LeftLegPivot"]
+position = Vector3(0, -0.34, 0)
 material_override = SubResource("PlayerMaterial")
 mesh = SubResource("PlayerLegMesh")
 
-[node name="RightLeg" type="MeshInstance3D" parent="Player/VisualPivot/PosePivot"]
-position = Vector3(0.16, -0.65, 0)
+[node name="RightLegPivot" type="Node3D" parent="Player/VisualPivot/PosePivot/MotionPivot"]
+position = Vector3(0.16, -0.31, 0)
 rotation = Vector3(0, 0, 0.045)
+
+[node name="RightLeg" type="MeshInstance3D" parent="Player/VisualPivot/PosePivot/MotionPivot/RightLegPivot"]
+position = Vector3(0, -0.34, 0)
 material_override = SubResource("PlayerMaterial")
 mesh = SubResource("PlayerLegMesh")
 

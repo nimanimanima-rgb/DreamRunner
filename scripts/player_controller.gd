@@ -32,6 +32,21 @@ signal dream_entered
 @export var full_glide_pose_height: float = 6.0
 @export var pose_smoothing: float = 5.5
 
+@export_group("Procedural Visual Motion")
+@export_range(0.0, 0.12, 0.005) var run_bob_height: float = 0.035
+@export_range(0.0, 15.0, 0.5) var sprint_visual_lean_degrees: float = 7.0
+@export_range(5.0, 35.0, 1.0) var run_arm_swing_degrees: float = 20.0
+@export_range(15.0, 55.0, 1.0) var sprint_arm_swing_degrees: float = 38.0
+@export_range(5.0, 30.0, 1.0) var run_leg_swing_degrees: float = 18.0
+@export_range(15.0, 50.0, 1.0) var sprint_leg_swing_degrees: float = 34.0
+@export_range(2.0, 10.0, 0.25) var walk_stride_length: float = 5.0
+@export_range(3.0, 14.0, 0.25) var sprint_stride_length: float = 7.5
+@export_range(0.5, 1.5, 0.05) var locomotion_cycle_multiplier: float = 1.0
+@export_range(20.0, 80.0, 1.0) var glide_arm_lift_degrees: float = 64.0
+@export_range(5.0, 45.0, 1.0) var glide_arm_open_degrees: float = 28.0
+@export_range(0.0, 25.0, 1.0) var glide_leg_trail_degrees: float = 14.0
+@export_range(2.0, 10.0, 0.25) var motion_smoothing: float = 7.0
+
 @export_group("Camera")
 @export var mouse_sensitivity: float = 0.003
 @export var rotation_smoothing: float = 12.0
@@ -49,6 +64,11 @@ signal dream_entered
 @onready var camera: Camera3D = $CameraPivot/SpringArm3D/Camera3D
 @onready var visual_pivot: Node3D = $VisualPivot
 @onready var pose_pivot: Node3D = $VisualPivot/PosePivot
+@onready var motion_pivot: Node3D = $VisualPivot/PosePivot/MotionPivot
+@onready var left_arm_pivot: Node3D = $VisualPivot/PosePivot/MotionPivot/LeftArmPivot
+@onready var right_arm_pivot: Node3D = $VisualPivot/PosePivot/MotionPivot/RightArmPivot
+@onready var left_leg_pivot: Node3D = $VisualPivot/PosePivot/MotionPivot/LeftLegPivot
+@onready var right_leg_pivot: Node3D = $VisualPivot/PosePivot/MotionPivot/RightLegPivot
 @onready var ground_distance_ray: RayCast3D = $GroundDistanceRay
 
 var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
@@ -60,6 +80,7 @@ var starting_transform: Transform3D
 var starting_pitch: float
 var glide_pose_blend: float = 0.0
 var ground_clearance: float = 0.0
+var motion_phase: float = 0.0
 
 
 func _ready() -> void:
@@ -87,6 +108,8 @@ func _ready() -> void:
 	camera_pivot.reset_physics_interpolation()
 	visual_pivot.rotation = Vector3.ZERO
 	pose_pivot.rotation = Vector3.ZERO
+	motion_pivot.position = Vector3.ZERO
+	motion_pivot.rotation = Vector3.ZERO
 
 
 func _input(event: InputEvent) -> void:
@@ -144,6 +167,16 @@ func reset_to_start() -> void:
 	ground_clearance = 0.0
 	visual_pivot.rotation = Vector3.ZERO
 	pose_pivot.rotation = Vector3.ZERO
+	motion_phase = 0.0
+	motion_pivot.position = Vector3.ZERO
+	motion_pivot.rotation = Vector3.ZERO
+	motion_pivot.scale = Vector3.ONE
+	left_arm_pivot.rotation.x = 0.0
+	right_arm_pivot.rotation.x = 0.0
+	left_arm_pivot.rotation.z = deg_to_rad(-8.0)
+	right_arm_pivot.rotation.z = deg_to_rad(8.0)
+	left_leg_pivot.rotation.x = 0.0
+	right_leg_pivot.rotation.x = 0.0
 	reset_physics_interpolation()
 	camera_pivot.reset_physics_interpolation()
 
@@ -320,6 +353,84 @@ func update_visual_pose(delta: float) -> void:
 	)
 	pose_pivot.rotation.y = 0.0
 	pose_pivot.rotation.z = 0.0
+	update_character_motion(delta)
+
+
+func update_character_motion(delta: float) -> void:
+	var horizontal_speed: float = Vector2(velocity.x, velocity.z).length()
+	var moving_on_ground: bool = is_on_floor() and horizontal_speed > 0.5
+	var gliding: bool = is_gliding()
+	var sprint_blend: float = clampf(
+		inverse_lerp(walk_speed, sprint_speed, horizontal_speed),
+		0.0,
+		1.0
+	)
+	if moving_on_ground:
+		var stride_length: float = lerpf(
+			walk_stride_length,
+			sprint_stride_length,
+			sprint_blend
+		)
+		motion_phase += (
+			delta * horizontal_speed / maxf(stride_length, 0.1)
+			* TAU * locomotion_cycle_multiplier
+		)
+	elif is_on_floor():
+		motion_phase += delta * 1.15
+
+	var motion_weight: float = (
+		clampf(horizontal_speed / maxf(walk_speed, 0.1), 0.0, 1.0)
+		if moving_on_ground
+		else 0.0
+	)
+	var arm_amplitude: float = deg_to_rad(
+		lerpf(run_arm_swing_degrees, sprint_arm_swing_degrees, sprint_blend)
+	) * motion_weight
+	var leg_amplitude: float = deg_to_rad(
+		lerpf(run_leg_swing_degrees, sprint_leg_swing_degrees, sprint_blend)
+	) * motion_weight
+	var target_arm_swing: float = sin(motion_phase) * arm_amplitude
+	var target_leg_swing: float = sin(motion_phase) * leg_amplitude
+	if not moving_on_ground:
+		target_arm_swing = 0.0
+		target_leg_swing = 0.0
+	var left_arm_target: float = target_arm_swing
+	var right_arm_target: float = -target_arm_swing
+	var left_leg_target: float = -target_leg_swing
+	var right_leg_target: float = target_leg_swing
+	var left_arm_open_target: float = deg_to_rad(-8.0)
+	var right_arm_open_target: float = deg_to_rad(8.0)
+
+	var target_bob: float = sin(motion_phase * 2.0) * run_bob_height * motion_weight
+	if not moving_on_ground:
+		target_bob = sin(motion_phase) * 0.012 if is_on_floor() else 0.0
+	var target_lean: float = -deg_to_rad(sprint_visual_lean_degrees) * sprint_blend
+	var target_stretch: float = 1.0
+	if not is_on_floor() and not gliding:
+		target_lean = -deg_to_rad(4.0)
+		target_stretch = 1.025 if velocity.y > 0.0 else 1.0
+	elif gliding:
+		target_lean = 0.0
+		target_bob = 0.0
+		left_arm_target = deg_to_rad(glide_arm_lift_degrees)
+		right_arm_target = deg_to_rad(glide_arm_lift_degrees)
+		left_arm_open_target = -deg_to_rad(glide_arm_open_degrees)
+		right_arm_open_target = deg_to_rad(glide_arm_open_degrees)
+		left_leg_target = -deg_to_rad(glide_leg_trail_degrees)
+		right_leg_target = -deg_to_rad(glide_leg_trail_degrees)
+
+	var weight: float = 1.0 - exp(-motion_smoothing * delta)
+	motion_pivot.position.y = lerpf(motion_pivot.position.y, target_bob, weight)
+	motion_pivot.rotation.x = lerp_angle(motion_pivot.rotation.x, target_lean, weight)
+	motion_pivot.rotation.y = 0.0
+	motion_pivot.rotation.z = 0.0
+	motion_pivot.scale = motion_pivot.scale.lerp(Vector3(1.0, target_stretch, 1.0), weight)
+	left_arm_pivot.rotation.x = lerp_angle(left_arm_pivot.rotation.x, left_arm_target, weight)
+	right_arm_pivot.rotation.x = lerp_angle(right_arm_pivot.rotation.x, right_arm_target, weight)
+	left_arm_pivot.rotation.z = lerp_angle(left_arm_pivot.rotation.z, left_arm_open_target, weight)
+	right_arm_pivot.rotation.z = lerp_angle(right_arm_pivot.rotation.z, right_arm_open_target, weight)
+	left_leg_pivot.rotation.x = lerp_angle(left_leg_pivot.rotation.x, left_leg_target, weight)
+	right_leg_pivot.rotation.x = lerp_angle(right_leg_pivot.rotation.x, right_leg_target, weight)
 
 
 func get_ground_clearance() -> float:
