@@ -1,5 +1,10 @@
 # Dream Runner Roadmap
 
+## Sound / Ambience Pass 01
+
+- Added browser-unlocked procedural wind, distant tonal ambience, mood coloration, and restrained dream-signal resonance.
+- Sprinting and gliding gently strengthen the air layer; `M` toggles mute for testing.
+
 ## Natural Launch Terrain Pass 01
 
 - Added sparse world-space ridges, broad shelves, hill lips, and wind-carved rises for sprint-to-jump and glide flow.

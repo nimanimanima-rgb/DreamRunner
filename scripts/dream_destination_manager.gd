@@ -1,5 +1,7 @@
 extends Node3D
 
+signal destination_reached
+
 @export var player_path: NodePath
 @export var camera_path: NodePath
 @export var terrain_manager_path: NodePath
@@ -472,6 +474,7 @@ func begin_destination_response() -> void:
 	is_resolving = true
 	response_time = 0.0
 	destinations_reached += 1
+	destination_reached.emit()
 	advance_journey_heading()
 
 

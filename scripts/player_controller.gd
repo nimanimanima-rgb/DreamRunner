@@ -1,5 +1,7 @@
 extends CharacterBody3D
 
+signal dream_entered
+
 @export_group("Movement")
 @export var walk_speed: float = 13.0
 @export var sprint_speed: float = 34.0
@@ -105,6 +107,7 @@ func _input(event: InputEvent) -> void:
 		and Input.get_mouse_mode() != Input.MOUSE_MODE_CAPTURED
 	):
 		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+		dream_entered.emit()
 		get_viewport().set_input_as_handled()
 		return
 

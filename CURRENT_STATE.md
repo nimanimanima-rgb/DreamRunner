@@ -45,6 +45,8 @@ Dream signal placement is flow-first but no longer linear: a persistent journey 
 
 ## Current UI/HUD systems
 
+- Procedural ambience begins after the browser-safe entry click, responds subtly to mood and movement, and can be muted with `M`.
+
 - Start overlay: "Click to enter dream" plus movement controls.
 - Clicking captures the mouse; `Esc` releases it; clicking again recaptures it.
 - Minimal normal-play hint: "Follow the dream signal".

@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://scripts/dream_atmosphere.gd" id="5_atmosphere"]
 [ext_resource type="Script" path="res://scripts/dream_destination_manager.gd" id="6_destination"]
 [ext_resource type="Script" path="res://scripts/dream_signal_guidance.gd" id="7_guidance"]
+[ext_resource type="Script" path="res://scripts/audio_manager.gd" id="8_audio"]
 
 [sub_resource type="StandardMaterial3D" id="PlayerMaterial"]
 albedo_color = Color(0.18, 0.42, 0.68, 1)
@@ -104,6 +105,16 @@ player_path = NodePath("../Player")
 camera_path = NodePath("../Player/CameraPivot/SpringArm3D/Camera3D")
 terrain_manager_path = NodePath("../TerrainManager")
 
+[node name="AudioManager" type="Node" parent="."]
+script = ExtResource("8_audio")
+player_path = NodePath("../Player")
+atmosphere_path = NodePath("../DreamAtmosphere")
+destination_manager_path = NodePath("../DreamDestinationManager")
+
+[node name="Ambience" type="AudioStreamPlayer" parent="AudioManager"]
+
+[node name="SignalResonance" type="AudioStreamPlayer" parent="AudioManager"]
+
 [node name="DebugHUD" type="CanvasLayer" parent="."]
 visible = false
 script = ExtResource("3_hud")
@@ -111,6 +122,7 @@ player_path = NodePath("../Player")
 terrain_manager_path = NodePath("../TerrainManager")
 atmosphere_path = NodePath("../DreamAtmosphere")
 destination_manager_path = NodePath("../DreamDestinationManager")
+audio_manager_path = NodePath("../AudioManager")
 
 [node name="MarginContainer" type="MarginContainer" parent="DebugHUD"]
 offset_left = 16.0

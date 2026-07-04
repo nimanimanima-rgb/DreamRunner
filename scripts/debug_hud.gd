@@ -4,6 +4,7 @@ extends CanvasLayer
 @export var terrain_manager_path: NodePath
 @export var atmosphere_path: NodePath
 @export var destination_manager_path: NodePath
+@export var audio_manager_path: NodePath
 
 @onready var player: CharacterBody3D = get_node(player_path)
 @onready var readout: Label = $MarginContainer/PanelContainer/MarginContainer/Readout
@@ -15,6 +16,9 @@ extends CanvasLayer
 )
 @onready var destination_manager: Node = (
 	null if destination_manager_path.is_empty() else get_node_or_null(destination_manager_path)
+)
+@onready var audio_manager: Node = (
+	null if audio_manager_path.is_empty() else get_node_or_null(audio_manager_path)
 )
 
 
@@ -67,6 +71,11 @@ func _process(_delta: float) -> void:
 			terrain_text += "\nLaunch route: %s" % (
 				"favored" if bool(destination_manager.call("is_launch_route_favored")) else "normal"
 			)
+		if audio_manager != null:
+			var audio_state: String = "muted" if bool(audio_manager.call("is_audio_muted")) else "on"
+			if not bool(audio_manager.call("is_audio_unlocked")):
+				audio_state = "waiting for click"
+			terrain_text += "\nAudio: %s" % audio_state
 	var movement_mode := "Gliding" if gliding else "Airborne"
 	if player.is_on_floor():
 		if horizontal_speed < 0.1:
