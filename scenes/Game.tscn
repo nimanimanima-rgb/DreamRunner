@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://bile5wvaam3yq" path="res://scripts/player_controller.gd" id="1_player"]
 [ext_resource type="Script" uid="uid://c3d0yp7lwq8fe" path="res://scripts/terrain_chunk_manager.gd" id="2_terrain"]
 [ext_resource type="Script" uid="uid://bnv4pyccmhbrw" path="res://scripts/debug_hud.gd" id="3_hud"]
+[ext_resource type="Script" path="res://scripts/start_overlay.gd" id="4_overlay"]
 
 [sub_resource type="StandardMaterial3D" id="PlayerMaterial"]
 albedo_color = Color(0.18, 0.42, 0.68, 1)
@@ -80,6 +81,7 @@ directional_shadow_max_distance = 180.0
 environment = SubResource("Environment")
 
 [node name="DebugHUD" type="CanvasLayer" parent="."]
+visible = false
 script = ExtResource("3_hud")
 player_path = NodePath("../Player")
 terrain_manager_path = NodePath("../TerrainManager")
@@ -112,3 +114,51 @@ Click to capture mouse
 Chunk: (0, 0)
 Active chunks: 25
 Active props: 0"
+
+[node name="StartOverlay" type="CanvasLayer" parent="."]
+layer = 10
+script = ExtResource("4_overlay")
+
+[node name="Backdrop" type="ColorRect" parent="StartOverlay"]
+mouse_filter = 2
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.025, 0.04, 0.075, 0.58)
+
+[node name="CenterContainer" type="CenterContainer" parent="StartOverlay"]
+mouse_filter = 2
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Message" type="VBoxContainer" parent="StartOverlay/CenterContainer"]
+mouse_filter = 2
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="StartOverlay/CenterContainer/Message"]
+mouse_filter = 2
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94, 0.97, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 32
+text = "Click to enter dream"
+horizontal_alignment = 1
+
+[node name="Controls" type="Label" parent="StartOverlay/CenterContainer/Message"]
+mouse_filter = 2
+layout_mode = 2
+theme_override_colors/font_color = Color(0.82, 0.88, 0.95, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 17
+text = "WASD move • Shift sprint • Space jump/glide • Esc release mouse"
+horizontal_alignment = 1

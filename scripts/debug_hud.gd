@@ -11,6 +11,9 @@ extends CanvasLayer
 
 
 func _process(_delta: float) -> void:
+	if not visible:
+		return
+
 	var horizontal_speed := Vector2(player.velocity.x, player.velocity.z).length()
 	var movement_state := "Grounded" if player.is_on_floor() else "Airborne"
 	var sprinting := Input.is_action_pressed("sprint") and horizontal_speed > 0.1
@@ -51,3 +54,9 @@ func _process(_delta: float) -> void:
 		+ mouse_hint
 		+ terrain_text
 	)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F3:
+		visible = not visible
+		get_viewport().set_input_as_handled()

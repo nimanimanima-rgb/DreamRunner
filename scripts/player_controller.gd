@@ -43,11 +43,15 @@ var pitch: float = deg_to_rad(-12.0)
 var target_pitch: float = pitch
 var yaw: float = 0.0
 var target_yaw: float = 0.0
+var starting_transform: Transform3D
+var starting_pitch: float
 
 
 func _ready() -> void:
 	safe_margin = 0.001
 	floor_snap_length = 0.45
+	starting_transform = global_transform
+	starting_pitch = pitch
 
 	var initial_camera_position := camera_pivot.global_position
 	camera_pivot.top_level = true
@@ -69,6 +73,11 @@ func _ready() -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if event.is_action_pressed("reset_player"):
+		reset_to_start()
+		get_viewport().set_input_as_handled()
+		return
+
 	if event.is_action_pressed("ui_cancel"):
 		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 		get_viewport().set_input_as_handled()
@@ -93,6 +102,19 @@ func _input(event: InputEvent) -> void:
 			deg_to_rad(min_pitch_degrees),
 			deg_to_rad(max_pitch_degrees)
 		)
+
+
+func reset_to_start() -> void:
+	global_transform = starting_transform
+	velocity = Vector3.ZERO
+	yaw = starting_transform.basis.get_euler().y
+	target_yaw = yaw
+	pitch = starting_pitch
+	target_pitch = pitch
+	camera_pivot.global_position = global_position + Vector3.UP * camera_height
+	camera_pivot.global_rotation = Vector3(pitch, yaw, 0.0)
+	reset_physics_interpolation()
+	camera_pivot.reset_physics_interpolation()
 
 
 func _process(delta: float) -> void:
