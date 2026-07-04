@@ -2,7 +2,7 @@
 
 ## Project summary
 
-DreamRunner is a browser-first third-person dream-running game built in Godot 4 with GDScript. Its core experience is fast, calm traversal through a procedural dream landscape: run, jump, glide, follow dream signals, and keep exploring without combat, timers, scoring pressure, or hard failure states.
+DreamRunner is a browser-first third-person dream-running game built in Godot 4 with GDScript. Its core experience is fast, calm traversal through a procedural dream landscape: run, jump, glide, follow dream signals, and keep exploring without combat, timers, scoring pressure, or hard failure states. The current build is the first MVP release candidate: a stable playtest build intended for approximately ten-minute sessions.
 
 ## Current main scene
 
@@ -19,6 +19,7 @@ Dream signal placement is flow-first but no longer linear: a persistent journey 
 - High jump, air control, and glide/float while descending.
 - Slope-aware movement with restrained uphill penalties and downhill boosts.
 - Smooth camera orbit, pitch limits, spring-arm collision, and interpolation-aware follow.
+- A stylized primitive runner silhouette with speed-synced procedural locomotion, airborne posing, and a height-blended glide pose.
 - `R` reset/recenter to the starting area.
 - A soft exploration loop: reach the active dream destination and a new signal appears farther ahead.
 - No enemies, scoring, timer, fail state, or collectibles.
@@ -49,7 +50,7 @@ Dream signal placement is flow-first but no longer linear: a persistent journey 
 - Procedural ambience begins after the browser-safe entry click, responds subtly to mood and movement, and can be muted with `M`.
 
 - Start overlay: "Click to enter dream" plus movement controls.
-- Clicking captures the mouse; `Esc` releases it; clicking again recaptures it.
+- Clicking captures the mouse and unlocks audio; `Esc` releases the mouse and pauses; clicking the overlay resumes and recaptures it.
 - Minimal normal-play hint: "Follow the dream signal".
 - Off-screen signal arrow and distance label, hidden when the signal is visible or the mouse is released.
 - Debug HUD toggled with `F3`; hidden by default for a cleaner presentation.
@@ -62,7 +63,7 @@ Dream signal placement is flow-first but no longer linear: a persistent journey 
 - The project uses Godot 4.7, GL Compatibility rendering, and Jolt Physics.
 - Pointer-lock behavior is designed around browser user-gesture requirements.
 - The existing `Web` export preset outputs to `res://exports/web/DreamRunner.html`.
-- Web debug exports and browser smoke tests have succeeded.
+- Web exports and browser smoke tests have succeeded; the current export is playable as an MVP release candidate.
 - Continue checking sustained chunk-streaming performance, loading hitches, browser input behavior, and unusual aspect ratios.
 
 ## Important files and what they do
@@ -78,6 +79,7 @@ Dream signal placement is flow-first but no longer linear: a persistent journey 
 - `res://scripts/dream_signal_guidance.gd` - off-screen direction arrow and signal distance.
 - `res://scripts/debug_hud.gd` - `F3` diagnostics and runtime counters.
 - `res://scripts/start_overlay.gd` - start/control overlay visibility based on mouse capture.
+- `res://scripts/audio_manager.gd` - browser-unlocked procedural ambience, mood coloration, signal resonance, and `M` mute.
 - `res://export_presets.cfg` - Web export configuration.
 - `res://GAME_DESIGN.md` - high-level fantasy and design principles; some build-status text is outdated.
 - `res://ROADMAP.md` - milestone history and future work; several procedural checklist items lag behind implementation.
@@ -104,12 +106,19 @@ Dream signal placement is flow-first but no longer linear: a persistent journey 
 - Prefer small incremental changes, placeholder primitives, simple native Godot solutions, and browser-safe performance.
 - Add visual life and direction without cluttering the world or UI.
 
+## Known Not Final Yet
+
+- Procedural character animation is acceptable for MVP playtesting, but it is not the final animation solution.
+- Sound is an ambience foundation, not final sound design or music.
+- Environment silhouettes are improved but still use primitive, in-engine geometry.
+- A real custom-asset pipeline and final asset direction come later.
+- This MVP validates movement, atmosphere, journey flow, and browser performance—not final presentation quality.
+
 ## Next likely milestones
 
-- Profile sustained chunk streaming and synchronous terrain/collision generation in Web builds.
-- Validate chunk seams, large-prop collisions, open lanes, and memory behavior over long runs.
-- Test pointer lock, keyboard input, signal guidance, and UI placement across browsers and aspect ratios.
-- Tune fog, signal visibility, dream motes, giant prop frequency, and destination placement through playtesting.
-- Add restrained movement polish such as landing feedback, wind audio, and footsteps.
-- Reconcile outdated status text and roadmap checkboxes with the implemented build.
-- Later: title/settings flow, music, deployment, and public prototype polish.
+- Run a structured playtest-feedback pass before changing the core feel.
+- Profile sustained chunk streaming, draw calls, procedural audio, and memory in Web builds.
+- Establish the asset pipeline and create the first real custom environment/player assets.
+- Revisit character animation after playtest and asset-pipeline decisions.
+- Later passes: sound design 02, mood/atmosphere polish, and revelation-composition polish.
+- Prepare and publish a public browser build, including itch.io packaging and cross-browser checks.

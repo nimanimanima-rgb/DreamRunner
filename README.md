@@ -18,21 +18,18 @@ Godot 4.
 
 ## Current Goal
 
-Build a small playable prototype where the movement feels good before adding procedural terrain.
+Playtest and profile the first browser MVP release candidate before expanding scope.
 
 ## Current Build Status
 
-The first playable movement prototype has been created. The current build includes:
+The current browser-first MVP candidate includes:
 
-- Godot 4 project
-- main scene
-- flat ground
-- basic player controller
-- WASD movement
-- sprint
-- high jump
-- mouse camera
+- Fast third-person running, jumping, gliding, and procedural character motion
+- Streamed procedural terrain with natural launch forms and giant landmarks
+- Dream-signal journey loop with path variation and off-screen guidance
+- Mood-driven sky, fog, lighting, motes, and procedural ambience
+- Start/pause shell, mouse capture, debug controls, reset, and Web export
 
 ## Next Milestone
 
-**Movement Laboratory:** tune running, jump, air control, camera, and debug UI.
+**Playtest and Profiling:** gather ten-minute-session feedback, then profile browser streaming and rendering before beginning the custom-asset pipeline.

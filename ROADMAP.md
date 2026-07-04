@@ -1,5 +1,25 @@
 # Dream Runner Roadmap
 
+## Current Status: MVP Release Candidate
+
+The current `Game.tscn` build is a stable browser-first playtest candidate with the MVP shell, movement/glide, procedural world, dream-signal journey, mood states, ambience, stylized character motion, giant landmarks, and Web export.
+
+## Next Milestones
+
+1. Playtest feedback pass: validate ten-minute movement, journey flow, readability, and friction.
+2. Performance profiling pass: sustained chunk streaming, draw calls, memory, audio generation, and browser hitches.
+3. Asset pipeline: define the workflow and create the first real custom player/environment assets.
+4. Later polish: revisit character animation, sound design 02, mood/atmosphere, and revelation compositions.
+5. Public browser build: cross-browser QA, itch.io preparation, packaging, and release notes.
+
+## Known Not Final Yet
+
+- Procedural character animation is suitable for the MVP, not final.
+- Sound is a lightweight ambience foundation, not final sound design.
+- Environment art remains improved primitive/in-engine geometry.
+- Custom assets and the final asset pipeline come later.
+- The MVP tests feel and flow, not final presentation.
+
 ## Sound / Ambience Pass 01
 
 - Added browser-unlocked procedural wind, distant tonal ambience, mood coloration, and restrained dream-signal resonance.
@@ -69,7 +89,7 @@ Revelation Composition Flow Fix Pass 01 makes signals long-range and strongly fo
 
 ### Next Milestone
 
-**Web Atmosphere Smoke Test:** verify the larger scene, procedural sky, fog, lighting, and shadows in the browser before adding more world detail.
+**Superseded:** Web atmosphere smoke testing is complete. Use the release-candidate milestones at the top of this file.
 
 ## Phase 2 — First Playable Scene
 
@@ -78,14 +98,14 @@ Goal: make one handcrafted area that feels satisfying.
 - [x] Expand the movement test area
 - [x] Add handcrafted ramps, platforms, and jump obstacles
 - [x] Add readable placeholder colors
-- [ ] Add rolling terrain
-- [ ] Add placeholder trees
-- [ ] Add placeholder rocks
+- [x] Add rolling terrain
+- [x] Add placeholder trees
+- [x] Add placeholder rocks
 - [x] Complete Atmosphere Pass 01
 - [x] Add procedural sky
 - [x] Improve lighting and ambient light
 - [x] Add distance fog
-- [ ] Tune movement and camera
+- [x] Tune movement and camera
 
 ## Phase 3 — Dream Movement Polish
 
@@ -93,19 +113,19 @@ Goal: make one handcrafted area that feels satisfying.
 - [x] Add glide/floating mechanic
 - [x] Add camera FOV change at high speed
 - [ ] Add landing effects
-- [ ] Add wind sound
+- [x] Add wind sound foundation
 - [ ] Add footstep sound
 
 ## Phase 4 — Procedural Terrain
 
 - [x] Start Procedural Terrain Spike 01 in a separate test scene
 - [ ] Validate chunk seams and Web performance
-- [ ] Generate terrain chunks
-- [ ] Spawn chunks around player
-- [ ] Remove distant chunks
-- [ ] Place trees procedurally
-- [ ] Place rocks procedurally
-- [ ] Add seeded generation
+- [x] Generate terrain chunks
+- [x] Spawn chunks around player
+- [x] Remove distant chunks
+- [x] Place trees procedurally
+- [x] Place rocks procedurally
+- [x] Add seeded generation
 
 ## Phase 5 — Browser Export
 
@@ -119,7 +139,7 @@ Goal: make one handcrafted area that feels satisfying.
 
 ## Phase 6 — Public Prototype
 
-- [ ] Add title screen
+- [x] Add minimal title/start overlay
 - [ ] Add restart button
 - [ ] Add settings
 - [ ] Add music
