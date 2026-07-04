@@ -64,6 +64,9 @@ func _process(_delta: float) -> void:
 			terrain_text += "\nDirection offset: %+.0f deg" % float(
 				destination_manager.call("get_direction_offset_degrees")
 			)
+			terrain_text += "\nLaunch route: %s" % (
+				"favored" if bool(destination_manager.call("is_launch_route_favored")) else "normal"
+			)
 	var movement_mode := "Gliding" if gliding else "Airborne"
 	if player.is_on_floor():
 		if horizontal_speed < 0.1:

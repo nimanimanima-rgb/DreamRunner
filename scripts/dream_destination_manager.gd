@@ -19,6 +19,7 @@ extends Node3D
 @export_range(2.0, 12.0, 0.5) var reach_radius: float = 6.0
 @export_range(1.0, 8.0, 0.5) var height_above_ground: float = 4.0
 @export_range(0.0, 1.0, 0.05) var revelation_composition_chance: float = 0.3
+@export_range(0.0, 0.5, 0.05) var launch_route_chance: float = 0.25
 
 @onready var player: CharacterBody3D = get_node(player_path)
 @onready var camera: Camera3D = get_node(camera_path)
@@ -46,6 +47,7 @@ var journey_heading := Vector3.FORWARD
 var current_direction_offset_degrees: float = 0.0
 var straight_destination_streak: int = 0
 var last_lateral_sign: float = 1.0
+var current_route_favors_launch: bool = false
 
 
 func _ready() -> void:
@@ -148,6 +150,7 @@ func place_new_destination() -> void:
 	marker_material.albedo_color.a = 0.82
 	marker_material.emission_energy_multiplier = 1.8
 	select_composition()
+	current_route_favors_launch = random.randf() < launch_route_chance
 
 	var chosen_position: Vector3 = find_destination_position()
 	destination_ground_height = chosen_position.y
@@ -237,7 +240,7 @@ func find_best_forward_candidate(
 			candidate,
 			forward_alignment,
 			candidate_distance
-		) + get_composition_score(candidate)
+		) + get_composition_score(candidate) + get_launch_route_score(candidate)
 		if score > best_score:
 			best_score = score
 			best_position = candidate
@@ -373,6 +376,15 @@ func get_composition_score(candidate: Vector3) -> float:
 			return -get_local_height_variation(candidate, 8.0) + random.randf() * 0.25
 
 
+func get_launch_route_score(candidate: Vector3) -> float:
+	if not current_route_favors_launch:
+		return 0.0
+	var approach_position: Vector3 = player.global_position.lerp(candidate, 0.62)
+	return float(
+		terrain_manager.call("get_launch_terrain_influence", approach_position)
+	) * 7.0
+
+
 func get_ridge_reveal_score(candidate: Vector3) -> float:
 	var highest_occlusion: float = -INF
 	for fraction in [0.3, 0.45, 0.6]:
@@ -500,3 +512,7 @@ func get_placement_mode() -> String:
 
 func get_direction_offset_degrees() -> float:
 	return current_direction_offset_degrees
+
+
+func is_launch_route_favored() -> bool:
+	return current_route_favors_launch

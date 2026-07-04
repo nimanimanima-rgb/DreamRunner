@@ -1,5 +1,11 @@
 # Dream Runner Roadmap
 
+## Natural Launch Terrain Pass 01
+
+- Added sparse world-space ridges, broad shelves, hill lips, and wind-carved rises for sprint-to-jump and glide flow.
+- Terrain forms remain deterministic and share the visual/collision height sampler across chunk borders.
+- Some dream-signal routes softly favor launch terrain; ordinary traversal remains the default.
+
 ## Dream Signal Path Variation Pass 01
 
 - Dream destinations now follow a gently turning persistent journey heading.

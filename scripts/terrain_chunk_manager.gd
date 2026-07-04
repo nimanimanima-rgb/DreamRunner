@@ -11,6 +11,12 @@ extends Node3D
 @export var terrain_scale: float = 0.004
 @export var terrain_seed: int = 1337
 
+@export_group("Natural Launch Terrain")
+@export_range(0.0, 12.0, 0.5) var launch_height_amplitude: float = 6.5
+@export_range(0.0005, 0.004, 0.0001) var launch_region_scale: float = 0.0013
+@export_range(0.001, 0.008, 0.0001) var launch_shape_scale: float = 0.0032
+@export_range(0.0, 0.8, 0.01) var launch_region_threshold: float = 0.34
+
 @export_group("Nature Props")
 @export_range(0, 8, 1) var trees_per_chunk: int = 2
 @export_range(0, 8, 1) var rocks_per_chunk: int = 1
@@ -62,6 +68,9 @@ var current_chunk := Vector2i.ZERO
 
 var terrain_noise: FastNoiseLite
 var terrain_zero_offset: float = 0.0
+var launch_region_noise: FastNoiseLite
+var launch_shape_noise: FastNoiseLite
+var launch_zero_offset: float = 0.0
 var material_a: StandardMaterial3D
 var material_b: StandardMaterial3D
 var trunk_material: StandardMaterial3D
@@ -126,6 +135,21 @@ func create_shared_resources() -> void:
 	terrain_noise.fractal_gain = 0.45
 	terrain_noise.fractal_lacunarity = 2.0
 	terrain_zero_offset = terrain_noise.get_noise_2d(0.0, 0.0) * height_amplitude
+
+	launch_region_noise = FastNoiseLite.new()
+	launch_region_noise.seed = terrain_seed + 271
+	launch_region_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	launch_region_noise.frequency = launch_region_scale
+	launch_region_noise.fractal_octaves = 2
+	launch_region_noise.fractal_gain = 0.4
+
+	launch_shape_noise = FastNoiseLite.new()
+	launch_shape_noise.seed = terrain_seed + 619
+	launch_shape_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	launch_shape_noise.frequency = launch_shape_scale
+	launch_shape_noise.fractal_octaves = 2
+	launch_shape_noise.fractal_gain = 0.35
+	launch_zero_offset = get_launch_height(0.0, 0.0)
 
 	material_a = create_grass_material(grass_color_a)
 	material_b = create_grass_material(grass_color_b)
@@ -239,7 +263,40 @@ func create_landmark_material(color: Color) -> StandardMaterial3D:
 func sample_height(world_x: float, world_z: float) -> float:
 	# Every chunk samples the same world-space function. Shared border vertices
 	# therefore receive the same height instead of creating cracks.
-	return terrain_noise.get_noise_2d(world_x, world_z) * height_amplitude - terrain_zero_offset
+	var rolling_height: float = (
+		terrain_noise.get_noise_2d(world_x, world_z) * height_amplitude
+		- terrain_zero_offset
+	)
+	return rolling_height + get_launch_height(world_x, world_z) - launch_zero_offset
+
+
+func get_launch_height(world_x: float, world_z: float) -> float:
+	# Low-frequency gating leaves long quiet passages between launch terrain.
+	# A soft ridged field creates broad shelves, lips, and valley edges without
+	# introducing geometric ramps or discontinuities at chunk borders.
+	var region_value: float = launch_region_noise.get_noise_2d(world_x, world_z)
+	var region_mask: float = smoothstep(
+		launch_region_threshold,
+		minf(launch_region_threshold + 0.36, 0.98),
+		region_value
+	)
+	if region_mask <= 0.0:
+		return 0.0
+	var shape_value: float = launch_shape_noise.get_noise_2d(world_x, world_z)
+	var ridge: float = 1.0 - absf(shape_value)
+	var broad_rise: float = smoothstep(0.28, 0.92, ridge)
+	var wind_lean: float = shape_value * 0.22 + 0.78
+	return broad_rise * wind_lean * region_mask * launch_height_amplitude
+
+
+func get_launch_terrain_influence(world_position: Vector3) -> float:
+	if launch_height_amplitude <= 0.0:
+		return 0.0
+	return clampf(
+		get_launch_height(world_position.x, world_position.z) / launch_height_amplitude,
+		0.0,
+		1.0
+	)
 
 
 func world_to_chunk(world_position: Vector3) -> Vector2i:
