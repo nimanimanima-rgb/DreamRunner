@@ -91,10 +91,10 @@ func create_destination_visual() -> void:
 	marker_material = StandardMaterial3D.new()
 	marker_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	marker_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	marker_material.albedo_color = Color(0.57, 0.78, 1.0, 0.82)
+	marker_material.albedo_color = Color(0.78, 0.82, 0.75, 0.8)
 	marker_material.emission_enabled = true
-	marker_material.emission = Color(0.48, 0.67, 1.0)
-	marker_material.emission_energy_multiplier = 1.8
+	marker_material.emission = Color(0.67, 0.73, 0.72)
+	marker_material.emission_energy_multiplier = 1.45
 
 	var ring_mesh := TorusMesh.new()
 	ring_mesh.inner_radius = 2.45
@@ -115,6 +115,18 @@ func create_destination_visual() -> void:
 	cross_ring.material_override = marker_material
 	cross_ring.rotation.z = PI * 0.5
 	marker.add_child(cross_ring)
+
+	var outer_ring_mesh := TorusMesh.new()
+	outer_ring_mesh.inner_radius = 3.45
+	outer_ring_mesh.outer_radius = 3.62
+	outer_ring_mesh.rings = 24
+	outer_ring_mesh.ring_segments = 6
+	var outer_ring := MeshInstance3D.new()
+	outer_ring.name = "OuterHalo"
+	outer_ring.mesh = outer_ring_mesh
+	outer_ring.material_override = marker_material
+	outer_ring.rotation.x = PI * 0.5
+	marker.add_child(outer_ring)
 
 	var orb_mesh := SphereMesh.new()
 	orb_mesh.radius = 0.55
@@ -149,8 +161,8 @@ func place_new_destination() -> void:
 	response_time = 0.0
 	marker.visible = true
 	marker.scale = Vector3.ONE
-	marker_material.albedo_color.a = 0.82
-	marker_material.emission_energy_multiplier = 1.8
+	marker_material.albedo_color.a = 0.8
+	marker_material.emission_energy_multiplier = 1.45
 	select_composition()
 	current_route_favors_launch = random.randf() < launch_route_chance
 
@@ -466,7 +478,7 @@ func update_destination_motion(delta: float) -> void:
 	var distance: float = get_destination_distance()
 	var lost_boost: float = clampf((distance - 220.0) / 500.0, 0.0, 1.0)
 	marker_material.emission_energy_multiplier = (
-		1.8 + lost_boost * 2.2 + sin(animation_time * 1.8) * 0.18
+		1.45 + lost_boost * 2.0 + sin(animation_time * 1.8) * 0.14
 	)
 
 
@@ -484,8 +496,8 @@ func update_destination_response(delta: float) -> void:
 	var flash_scale: float = 1.0 + sin(progress * PI) * 0.75
 	marker.scale = Vector3.ONE * flash_scale
 	marker.rotation.y += delta * 1.8
-	marker_material.albedo_color.a = 0.82 * (1.0 - progress)
-	marker_material.emission_energy_multiplier = 1.8 + sin(progress * PI) * 2.2
+	marker_material.albedo_color.a = 0.8 * (1.0 - progress)
+	marker_material.emission_energy_multiplier = 1.45 + sin(progress * PI) * 1.8
 
 	if progress >= 1.0:
 		place_new_destination()

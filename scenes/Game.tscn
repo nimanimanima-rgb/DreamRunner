@@ -10,13 +10,36 @@
 [ext_resource type="Script" path="res://scripts/audio_manager.gd" id="8_audio"]
 
 [sub_resource type="StandardMaterial3D" id="PlayerMaterial"]
-albedo_color = Color(0.18, 0.42, 0.68, 1)
-roughness = 0.8
+albedo_color = Color(0.16, 0.22, 0.29, 1)
+roughness = 0.92
 
-[sub_resource type="CylinderMesh" id="PlayerMesh"]
-top_radius = 0.4
-bottom_radius = 0.4
-height = 1.8
+[sub_resource type="StandardMaterial3D" id="PlayerAccentMaterial"]
+albedo_color = Color(0.5, 0.62, 0.68, 1)
+roughness = 0.78
+
+[sub_resource type="CylinderMesh" id="PlayerTorsoMesh"]
+top_radius = 0.27
+bottom_radius = 0.34
+height = 0.95
+radial_segments = 8
+
+[sub_resource type="SphereMesh" id="PlayerHeadMesh"]
+radius = 0.23
+height = 0.46
+radial_segments = 10
+rings = 5
+
+[sub_resource type="CylinderMesh" id="PlayerArmMesh"]
+top_radius = 0.07
+bottom_radius = 0.09
+height = 0.72
+radial_segments = 6
+
+[sub_resource type="CylinderMesh" id="PlayerLegMesh"]
+top_radius = 0.09
+bottom_radius = 0.12
+height = 0.68
+radial_segments = 6
 
 [sub_resource type="CapsuleShape3D" id="PlayerShape"]
 radius = 0.4
@@ -55,9 +78,39 @@ position = Vector3(0, 0.9, 0)
 
 [node name="PosePivot" type="Node3D" parent="Player/VisualPivot"]
 
-[node name="BodyMesh" type="MeshInstance3D" parent="Player/VisualPivot/PosePivot"]
+[node name="Torso" type="MeshInstance3D" parent="Player/VisualPivot/PosePivot"]
+position = Vector3(0, 0.15, 0)
 material_override = SubResource("PlayerMaterial")
-mesh = SubResource("PlayerMesh")
+mesh = SubResource("PlayerTorsoMesh")
+
+[node name="Head" type="MeshInstance3D" parent="Player/VisualPivot/PosePivot"]
+position = Vector3(0, 0.84, -0.035)
+material_override = SubResource("PlayerAccentMaterial")
+mesh = SubResource("PlayerHeadMesh")
+
+[node name="LeftArm" type="MeshInstance3D" parent="Player/VisualPivot/PosePivot"]
+position = Vector3(-0.39, 0.12, 0)
+rotation = Vector3(0, 0, -0.14)
+material_override = SubResource("PlayerMaterial")
+mesh = SubResource("PlayerArmMesh")
+
+[node name="RightArm" type="MeshInstance3D" parent="Player/VisualPivot/PosePivot"]
+position = Vector3(0.39, 0.12, 0)
+rotation = Vector3(0, 0, 0.14)
+material_override = SubResource("PlayerMaterial")
+mesh = SubResource("PlayerArmMesh")
+
+[node name="LeftLeg" type="MeshInstance3D" parent="Player/VisualPivot/PosePivot"]
+position = Vector3(-0.16, -0.65, 0)
+rotation = Vector3(0, 0, -0.045)
+material_override = SubResource("PlayerMaterial")
+mesh = SubResource("PlayerLegMesh")
+
+[node name="RightLeg" type="MeshInstance3D" parent="Player/VisualPivot/PosePivot"]
+position = Vector3(0.16, -0.65, 0)
+rotation = Vector3(0, 0, 0.045)
+material_override = SubResource("PlayerMaterial")
+mesh = SubResource("PlayerLegMesh")
 
 [node name="PlayerCollision" type="CollisionShape3D" parent="Player"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)

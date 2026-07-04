@@ -25,6 +25,7 @@ Dream signal placement is flow-first but no longer linear: a persistent journey 
 
 ## Current world systems
 
+- A first cohesive in-engine palette now unifies the symbolic runner, dusty terrain, muted vegetation and stone, restrained landmarks, and pale dream signal.
 - Natural launch terrain uses sparse world-space ridge fields to form broad slopes, shelves, hill lips, and valley edges while keeping chunk meshes and collision seamless.
 - A minority of dream-signal routes softly prefer launch-friendly terrain along their approach; normal traversal remains the default.
 - Seeded procedural rolling terrain generated in streamed chunks around the player.

@@ -52,13 +52,13 @@ extends Node3D
 @export_range(0.0, 0.1, 0.005) var monumental_boulder_chance: float = 0.01
 @export_range(25.0, 80.0, 5.0) var max_monumental_boulder_height: float = 55.0
 
-@export_group("Placeholder Colors")
-@export var grass_color_a := Color(0.31, 0.48, 0.25)
-@export var grass_color_b := Color(0.28, 0.44, 0.23)
-@export var trunk_color := Color(0.35, 0.22, 0.13)
-@export var foliage_color := Color(0.24, 0.43, 0.25)
-@export var rock_color := Color(0.48, 0.46, 0.42)
-@export var landmark_color := Color(0.48, 0.36, 0.62)
+@export_group("World Material Palette")
+@export var grass_color_a := Color(0.3, 0.39, 0.27)
+@export var grass_color_b := Color(0.27, 0.36, 0.25)
+@export var trunk_color := Color(0.3, 0.24, 0.19)
+@export var foliage_color := Color(0.29, 0.38, 0.28)
+@export var rock_color := Color(0.45, 0.43, 0.4)
+@export var landmark_color := Color(0.4, 0.43, 0.49)
 
 @onready var player: CharacterBody3D = get_node(player_path)
 
@@ -157,12 +157,12 @@ func create_shared_resources() -> void:
 	foliage_material = create_grass_material(foliage_color)
 	rock_material = create_grass_material(rock_color)
 	landmark_material = create_grass_material(landmark_color)
-	pale_stone_material = create_grass_material(Color(0.58, 0.59, 0.56))
-	dark_stone_material = create_grass_material(Color(0.25, 0.27, 0.28))
-	faded_ring_material = create_grass_material(Color(0.6, 0.63, 0.64))
+	pale_stone_material = create_grass_material(Color(0.57, 0.55, 0.5))
+	dark_stone_material = create_grass_material(Color(0.28, 0.3, 0.31))
+	faded_ring_material = create_grass_material(Color(0.63, 0.62, 0.57))
 	faded_ring_material.emission_enabled = true
-	faded_ring_material.emission = Color(0.2, 0.23, 0.25)
-	faded_ring_material.emission_energy_multiplier = 0.18
+	faded_ring_material.emission = Color(0.34, 0.32, 0.26)
+	faded_ring_material.emission_energy_multiplier = 0.14
 	foliage_materials = [
 		foliage_material,
 		create_grass_material(foliage_color.lightened(0.08)),
@@ -175,8 +175,8 @@ func create_shared_resources() -> void:
 	]
 	landmark_materials = [
 		create_landmark_material(landmark_color),
-		create_landmark_material(Color(0.38, 0.52, 0.7)),
-		create_landmark_material(Color(0.63, 0.4, 0.58)),
+		create_landmark_material(Color(0.4, 0.49, 0.56)),
+		create_landmark_material(Color(0.53, 0.46, 0.47)),
 	]
 
 	trunk_mesh = CylinderMesh.new()
@@ -255,8 +255,8 @@ func create_grass_material(color: Color) -> StandardMaterial3D:
 func create_landmark_material(color: Color) -> StandardMaterial3D:
 	var material := create_grass_material(color)
 	material.emission_enabled = true
-	material.emission = color * 0.55
-	material.emission_energy_multiplier = 0.65
+	material.emission = color * 0.4
+	material.emission_energy_multiplier = 0.38
 	return material
 
 
