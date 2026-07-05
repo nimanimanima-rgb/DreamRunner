@@ -412,5 +412,24 @@ func get_current_dimension_name() -> String:
 	return dimension_layers[current_dimension_index].display_name
 
 
+func get_current_ground_bottom_color() -> Color:
+	if current_dimension_index < 0 or current_dimension_index >= dimension_layers.size():
+		return Color(0.1, 0.12, 0.13)
+	return dimension_layers[current_dimension_index].ground_bottom
+
+
+func get_current_ground_horizon_color() -> Color:
+	if current_dimension_index < 0 or current_dimension_index >= dimension_layers.size():
+		return Color(0.34, 0.36, 0.33)
+	return dimension_layers[current_dimension_index].ground_horizon
+
+
+func get_current_far_ground_source_color() -> Color:
+	return get_current_ground_bottom_color().lerp(
+		get_current_ground_horizon_color(),
+		0.65
+	)
+
+
 # Future dimension-aware objects can connect to dimension_changed and decide whether
 # to reveal, transform, recolor, or alter sound. Keep those behaviors out of this node.

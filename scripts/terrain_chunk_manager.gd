@@ -118,6 +118,7 @@ var far_terrain_instance: MeshInstance3D
 var horizon_terrain_instance: MeshInstance3D
 var far_terrain_material: StandardMaterial3D
 var horizon_terrain_material: StandardMaterial3D
+var last_far_world_color_update_frame: int = -1
 var current_chunk := Vector2i.ZERO
 
 var terrain_noise: FastNoiseLite
@@ -487,9 +488,13 @@ func sample_surface_normal(world_x: float, world_z: float) -> Vector3:
 
 
 func create_far_world_layers() -> void:
-	far_terrain_material = create_grass_material(Color(0.28, 0.31, 0.29))
-	horizon_terrain_material = create_grass_material(Color(0.22, 0.26, 0.27))
+	# Match normal terrain exactly: lit vertex colors plus engine fog. Separate
+	# material instances preserve independent future distance tuning.
+	far_terrain_material = create_grass_material(Color.WHITE)
+	far_terrain_material.vertex_color_use_as_albedo = true
 	far_terrain_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	horizon_terrain_material = create_grass_material(Color.WHITE)
+	horizon_terrain_material.vertex_color_use_as_albedo = true
 	horizon_terrain_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 
 	far_terrain_instance = MeshInstance3D.new()
@@ -535,6 +540,7 @@ func generate_radial_terrain_mesh(
 	var row_size: int = far_world_radial_segments + 1
 	var vertices := PackedVector3Array()
 	var normals := PackedVector3Array()
+	var colors := PackedColorArray()
 	var indices := PackedInt32Array()
 	for radial_index in range(radial_steps + 1):
 		var radial_weight: float = float(radial_index) / float(radial_steps)
@@ -543,9 +549,12 @@ func generate_radial_terrain_mesh(
 			var angle: float = TAU * float(segment) / float(far_world_radial_segments)
 			var local_x: float = cos(angle) * radius
 			var local_z: float = sin(angle) * radius
+			var world_x: float = center.x + local_x
+			var world_z: float = center.y + local_z
+			var terrain_height: float = sample_height(world_x, world_z)
 			# Sit slightly beneath overlapping square LOD chunks to prevent distant
 			# z-fighting while preserving the same underlying height silhouette.
-			var height: float = sample_height(center.x + local_x, center.y + local_z) - 2.0
+			var height: float = terrain_height - 2.0
 			if add_horizon_silhouette:
 				# Broad angular waves lift only the remote band into irregular ridge
 				# silhouettes; dense fog dissolves its outer boundary into the sky.
@@ -555,7 +564,16 @@ func generate_radial_terrain_mesh(
 				)
 				height += smoothstep(0.0, 0.72, radial_weight) * (18.0 + ridge_wave)
 			vertices.append(Vector3(local_x, height, local_z))
-			normals.append(Vector3.UP)
+			var terrain_normal: Vector3 = sample_surface_normal(world_x, world_z)
+			normals.append(terrain_normal)
+			var terrain_color: Color = get_terrain_vertex_color(
+				world_x, world_z, terrain_height, terrain_normal
+			)
+			var distance_lift: float = 0.1 if not add_horizon_silhouette else 0.16
+			var lifted_color: Color = terrain_color.lerp(
+				Color(0.72, 0.74, 0.66), distance_lift
+			)
+			colors.append(Color(lifted_color.r, lifted_color.g, lifted_color.b, 1.0))
 	for radial_index in range(radial_steps):
 		for segment in range(far_world_radial_segments):
 			var inner_left: int = radial_index * row_size + segment
@@ -570,6 +588,7 @@ func generate_radial_terrain_mesh(
 	arrays.resize(Mesh.ARRAY_MAX)
 	arrays[Mesh.ARRAY_VERTEX] = vertices
 	arrays[Mesh.ARRAY_NORMAL] = normals
+	arrays[Mesh.ARRAY_COLOR] = colors
 	arrays[Mesh.ARRAY_INDEX] = indices
 	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
@@ -579,19 +598,9 @@ func generate_radial_terrain_mesh(
 func update_far_world_materials() -> void:
 	if far_terrain_material == null or horizon_terrain_material == null:
 		return
-	# Near terrain blends these two dusty greens through vertex color. Darkening
-	# their exact midpoint preserves its olive hue; no white/grey tint is added.
-	var ground_green: Color = grass_color_a.lerp(grass_color_b, 0.5)
-	var colors: Dictionary = {
-		&"pale_dawn": [ground_green.darkened(0.1), ground_green.darkened(0.18)],
-		&"cold_overcast": [Color(0.22, 0.265, 0.28), Color(0.15, 0.19, 0.215)],
-		&"golden_dissolve": [ground_green.darkened(0.08), ground_green.darkened(0.16)],
-		&"blue_liminal_night": [Color(0.09, 0.13, 0.2), Color(0.045, 0.075, 0.135)],
-		&"dust_haze_afternoon": [ground_green.darkened(0.12), ground_green.darkened(0.2)],
-	}
-	var profile: Array = colors.get(current_dimension_id, colors[&"pale_dawn"])
-	far_terrain_material.albedo_color = profile[0]
-	horizon_terrain_material.albedo_color = profile[1]
+	# Dimension changes reach these materials through the same environment
+	# lighting and fog path as regular terrain; no flat color override remains.
+	last_far_world_color_update_frame = Engine.get_process_frames()
 
 
 func create_landmark_dimension_materials() -> void:
@@ -2161,6 +2170,10 @@ func get_far_world_status() -> String:
 	if not far_world_enabled:
 		return "off"
 	return "on (%dm-%dm)" % [roundi(far_terrain_inner_radius), roundi(horizon_outer_radius)]
+
+
+func get_far_world_color_debug() -> String:
+	return "mode=terrain_vertex_color_fogged ring_vtx=true horizon_vtx=true frame=%d" % last_far_world_color_update_frame
 
 
 func get_playable_chunk_radius() -> int:
