@@ -33,6 +33,11 @@ var current_drone_level: float = 0.08
 var current_drone_frequency: float = 58.0
 var current_signal_frequency: float = 176.0
 var current_air_body: float = 0.1
+var target_wind_level: float = 0.68
+var target_drone_level: float = 0.05
+var target_drone_frequency: float = 70.0
+var target_signal_frequency: float = 176.0
+var target_air_body: float = 0.1
 var dimension_cue_samples_remaining: int = 0
 var dimension_cue_phase: float = 0.0
 
@@ -43,6 +48,8 @@ func _ready() -> void:
 	player.connect("dream_entered", unlock_audio)
 	destination_manager.connect("destination_reached", play_signal_resonance)
 	atmosphere.connect("dimension_changed", play_dimension_transition_cue)
+	atmosphere.connect("dimension_changed", update_dimension_targets)
+	update_dimension_targets(atmosphere.call("get_current_dimension_id"), "")
 
 
 func create_generator_streams() -> void:
@@ -67,56 +74,56 @@ func unlock_audio() -> void:
 
 
 func _process(delta: float) -> void:
-	update_dimension_color(delta)
+	smooth_dimension_audio(delta)
 	if not audio_unlocked or audio_muted:
 		return
 	fill_ambience_buffer()
 	fill_signal_buffer()
 
 
-func update_dimension_color(delta: float) -> void:
-	# Audio follows stable IDs so conceptual display names can change safely.
-	var dimension_id: StringName = atmosphere.call("get_current_dimension_id")
-	var target_wind: float = 0.7
-	var target_drone: float = 0.08
-	var target_frequency: float = 58.0
-	var target_signal_frequency: float = 176.0
-	var target_air_body: float = 0.1
+func update_dimension_targets(dimension_id: StringName, _display_name: String) -> void:
 	match dimension_id:
 		&"pale_dawn":
-			target_wind = 0.68
-			target_drone = 0.05
-			target_frequency = 70.0
+			target_wind_level = 0.68
+			target_drone_level = 0.05
+			target_drone_frequency = 70.0
 			target_signal_frequency = 176.0
 			target_air_body = 0.1
 		&"cold_overcast":
-			target_wind = 0.63
-			target_drone = 0.065
-			target_frequency = 46.0
+			target_wind_level = 0.63
+			target_drone_level = 0.065
+			target_drone_frequency = 46.0
 			target_signal_frequency = 132.0
 			target_air_body = 0.02
 		&"golden_dissolve":
-			target_wind = 0.56
-			target_drone = 0.12
-			target_frequency = 78.0
+			target_wind_level = 0.56
+			target_drone_level = 0.12
+			target_drone_frequency = 78.0
 			target_signal_frequency = 196.0
 			target_air_body = 0.22
 		&"blue_liminal_night":
-			target_wind = 0.46
-			target_drone = 0.14
-			target_frequency = 37.0
+			target_wind_level = 0.46
+			target_drone_level = 0.14
+			target_drone_frequency = 37.0
 			target_signal_frequency = 148.0
 			target_air_body = 0.18
 		&"dust_haze_afternoon":
-			target_wind = 0.86
-			target_drone = 0.025
-			target_frequency = 52.0
+			target_wind_level = 0.86
+			target_drone_level = 0.025
+			target_drone_frequency = 52.0
 			target_signal_frequency = 164.0
 			target_air_body = 0.0
+
+
+func smooth_dimension_audio(delta: float) -> void:
 	var weight: float = 1.0 - exp(-delta * 0.45)
-	current_wind_level = lerpf(current_wind_level, target_wind, weight)
-	current_drone_level = lerpf(current_drone_level, target_drone, weight)
-	current_drone_frequency = lerpf(current_drone_frequency, target_frequency, weight)
+	current_wind_level = lerpf(current_wind_level, target_wind_level, weight)
+	current_drone_level = lerpf(current_drone_level, target_drone_level, weight)
+	current_drone_frequency = lerpf(
+		current_drone_frequency,
+		target_drone_frequency,
+		weight
+	)
 	current_signal_frequency = lerpf(current_signal_frequency, target_signal_frequency, weight)
 	current_air_body = lerpf(current_air_body, target_air_body, weight)
 

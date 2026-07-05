@@ -88,7 +88,8 @@ func _process(_delta: float) -> void:
 			movement_mode = "Running"
 
 	readout.text = (
-		"Speed: %5.1f m/s\n" % horizontal_speed
+		"FPS: %d\n" % Engine.get_frames_per_second()
+		+ "Speed: %5.1f m/s\n" % horizontal_speed
 		+ "State: %s\n" % movement_state
 		+ "Vertical velocity: %5.1f m/s\n" % player.velocity.y
 		+ "Sprinting: %s\n" % str(sprinting)
