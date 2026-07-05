@@ -28,6 +28,11 @@ class DimensionLayer:
 @export_range(0.05, 2.0, 0.05) var drift_speed: float = 0.35
 @export_range(2.0, 30.0, 1.0) var vertical_range: float = 14.0
 @export_range(1.0, 30.0, 0.5) var dimension_transition_seconds: float = 6.0
+@export_group("Revelation Pulse")
+@export_range(0.0, 0.25, 0.01) var revelation_sky_pulse_strength: float = 0.12
+@export_range(0.0, 0.2, 0.01) var revelation_fog_pulse_strength: float = 0.1
+@export_range(0.05, 0.5, 0.01) var revelation_pulse_attack: float = 0.18
+@export_range(0.5, 2.5, 0.05) var revelation_pulse_decay: float = 1.35
 @export_group("Cloud Bands")
 @export_range(4, 16, 1) var cloud_count: int = 10
 @export_range(120.0, 420.0, 10.0) var cloud_radius: float = 270.0
@@ -55,6 +60,17 @@ var mote_material: StandardMaterial3D
 var cloud_layer: MultiMeshInstance3D
 var cloud_material: StandardMaterial3D
 var cloud_profiles: Dictionary = {}
+var normal_sky_top := Color.BLACK
+var normal_sky_horizon := Color.BLACK
+var normal_ground_bottom := Color.BLACK
+var normal_ground_horizon := Color.BLACK
+var normal_fog_color := Color.BLACK
+var revelation_pulse_amount: float = 0.0
+var revelation_pulse_start_amount: float = 0.0
+var revelation_pulse_target_amount: float = 0.0
+var revelation_pulse_attack_elapsed: float = 0.0
+var revelation_pulse_index: int = -1
+var revelation_pulse_attacking: bool = false
 
 
 func _ready() -> void:
@@ -81,6 +97,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	update_revelation_pulse(delta)
 	update_dimension_transition(delta)
 
 	var player_position := player.global_position
@@ -346,11 +363,12 @@ func create_dimension(
 
 
 func apply_dimension_immediately(layer: DimensionLayer) -> void:
-	sky_material.sky_top_color = layer.sky_top
-	sky_material.sky_horizon_color = layer.sky_horizon
-	sky_material.ground_bottom_color = layer.ground_bottom
-	sky_material.ground_horizon_color = layer.ground_horizon
-	world_environment.fog_light_color = layer.fog_color
+	normal_sky_top = layer.sky_top
+	normal_sky_horizon = layer.sky_horizon
+	normal_ground_bottom = layer.ground_bottom
+	normal_ground_horizon = layer.ground_horizon
+	normal_fog_color = layer.fog_color
+	apply_revelation_atmosphere_overlay()
 	world_environment.fog_density = layer.fog_density
 	world_environment.ambient_light_color = layer.ambient_color
 	world_environment.ambient_light_energy = layer.ambient_energy
@@ -365,19 +383,20 @@ func apply_dimension_immediately(layer: DimensionLayer) -> void:
 func update_dimension_transition(delta: float) -> void:
 	var target: DimensionLayer = dimension_layers[current_dimension_index]
 	var weight: float = 1.0 - exp(-4.6 * delta / dimension_transition_seconds)
-	sky_material.sky_top_color = sky_material.sky_top_color.lerp(target.sky_top, weight)
-	sky_material.sky_horizon_color = sky_material.sky_horizon_color.lerp(
+	normal_sky_top = normal_sky_top.lerp(target.sky_top, weight)
+	normal_sky_horizon = normal_sky_horizon.lerp(
 		target.sky_horizon, weight
 	)
-	sky_material.ground_bottom_color = sky_material.ground_bottom_color.lerp(
+	normal_ground_bottom = normal_ground_bottom.lerp(
 		target.ground_bottom, weight
 	)
-	sky_material.ground_horizon_color = sky_material.ground_horizon_color.lerp(
+	normal_ground_horizon = normal_ground_horizon.lerp(
 		target.ground_horizon, weight
 	)
-	world_environment.fog_light_color = world_environment.fog_light_color.lerp(
+	normal_fog_color = normal_fog_color.lerp(
 		target.fog_color, weight
 	)
+	apply_revelation_atmosphere_overlay()
 	world_environment.fog_density = lerpf(
 		world_environment.fog_density, target.fog_density, weight
 	)
@@ -402,6 +421,75 @@ func update_dimension_transition(delta: float) -> void:
 		target.id, cloud_profiles[&"pale_dawn"]
 	)
 	cloud_material.albedo_color = cloud_material.albedo_color.lerp(target_cloud_color, weight)
+
+
+func trigger_revelation_pulse(pulse_index: int = 0) -> void:
+	revelation_pulse_index = pulse_index
+	revelation_pulse_start_amount = revelation_pulse_amount
+	revelation_pulse_target_amount = minf(revelation_pulse_amount + 0.68, 1.0)
+	revelation_pulse_attack_elapsed = 0.0
+	revelation_pulse_attacking = true
+
+
+func update_revelation_pulse(delta: float) -> void:
+	if revelation_pulse_attacking:
+		revelation_pulse_attack_elapsed += delta
+		var attack_progress: float = clampf(
+			revelation_pulse_attack_elapsed / maxf(revelation_pulse_attack, 0.01),
+			0.0,
+			1.0
+		)
+		var smooth_attack: float = sin(attack_progress * PI * 0.5)
+		revelation_pulse_amount = lerpf(
+			revelation_pulse_start_amount,
+			revelation_pulse_target_amount,
+			smooth_attack
+		)
+		if attack_progress >= 1.0:
+			revelation_pulse_attacking = false
+	else:
+		revelation_pulse_amount = move_toward(
+			revelation_pulse_amount,
+			0.0,
+			delta / maxf(revelation_pulse_decay, 0.01)
+		)
+
+
+func apply_revelation_atmosphere_overlay() -> void:
+	var pulse_tint: Color = get_revelation_pulse_tint()
+	var sky_amount: float = revelation_pulse_amount * revelation_sky_pulse_strength
+	var fog_amount: float = revelation_pulse_amount * revelation_fog_pulse_strength
+	sky_material.sky_top_color = normal_sky_top.lerp(pulse_tint, sky_amount)
+	sky_material.sky_horizon_color = normal_sky_horizon.lerp(pulse_tint, sky_amount)
+	sky_material.ground_bottom_color = normal_ground_bottom.lerp(
+		pulse_tint, sky_amount * 0.45
+	)
+	sky_material.ground_horizon_color = normal_ground_horizon.lerp(
+		pulse_tint, sky_amount * 0.7
+	)
+	world_environment.fog_light_color = normal_fog_color.lerp(pulse_tint, fog_amount)
+
+
+func get_revelation_pulse_tint() -> Color:
+	match dimension_layers[current_dimension_index].id:
+		&"cold_overcast":
+			return Color(0.62, 0.78, 0.86)
+		&"golden_dissolve":
+			return Color(0.95, 0.62, 0.25)
+		&"blue_liminal_night":
+			return Color(0.35, 0.42, 0.82)
+		&"dust_haze_afternoon":
+			return Color(0.82, 0.58, 0.34)
+		_:
+			return Color(0.82, 0.79, 0.61)
+
+
+func get_revelation_pulse_amount() -> float:
+	return revelation_pulse_amount
+
+
+func get_revelation_pulse_index() -> int:
+	return revelation_pulse_index
 
 
 func get_current_dimension_id() -> StringName:

@@ -1,6 +1,7 @@
 extends Node3D
 
 signal destination_reached
+signal revelation_pulse(pulse_index: int)
 
 @export var player_path: NodePath
 @export var camera_path: NodePath
@@ -23,6 +24,12 @@ signal destination_reached
 @export_range(1.0, 8.0, 0.5) var height_above_ground: float = 4.0
 @export_range(0.0, 1.0, 0.05) var revelation_composition_chance: float = 0.3
 @export_range(0.0, 0.5, 0.05) var launch_route_chance: float = 0.25
+
+@export_group("Arrival Revelation")
+@export_range(4.0, 12.0, 0.25) var revelation_duration: float = 7.0
+@export_range(0.75, 5.0, 0.05) var next_signal_delay: float = 2.25
+@export_range(20.0, 70.0, 1.0) var revelation_shockwave_radius: float = 42.0
+@export_range(0.2, 1.5, 0.05) var revelation_intensity: float = 0.75
 
 @export_group("First Signal Onboarding")
 @export_range(300.0, 600.0, 10.0) var first_signal_distance_min: float = 380.0
@@ -64,12 +71,28 @@ var signal_alpha: float = 0.8
 var signal_base_emission: float = 1.45
 var signal_pulse_amount: float = 0.06
 var placing_first_destination: bool = false
+var revelation_active: bool = false
+var revelation_timer: float = 0.0
+var pending_next_signal: bool = false
+var revelation_origin := Vector3.ZERO
+var revelation_color := Color(0.67, 0.73, 0.72)
+var revelation_root: Node3D
+var revelation_rings: Array[MeshInstance3D] = []
+var revelation_ring_materials: Array[StandardMaterial3D] = []
+var revelation_beam: MeshInstance3D
+var revelation_beam_material: StandardMaterial3D
+var revelation_glints: Array[MeshInstance3D] = []
+var revelation_glint_material: StandardMaterial3D
+var next_revelation_pulse_index: int = 0
 
 
 func _ready() -> void:
 	random.seed = 91027
 	create_destination_visual()
+	create_revelation_visuals()
 	atmosphere.connect("dimension_changed", _on_dimension_changed)
+	if atmosphere.has_method("trigger_revelation_pulse"):
+		revelation_pulse.connect(Callable(atmosphere, "trigger_revelation_pulse"))
 	apply_dimension_signal_profile(atmosphere.call("get_current_dimension_id"))
 	previous_player_position = player.global_position
 	journey_heading = get_preferred_direction()
@@ -78,6 +101,8 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	animation_time += delta
+	if revelation_active:
+		update_revelation(delta)
 	var horizontal_velocity := Vector3(player.velocity.x, 0.0, player.velocity.z)
 	if horizontal_velocity.length_squared() > 16.0:
 		last_travel_direction = horizontal_velocity.normalized()
@@ -87,6 +112,7 @@ func _process(delta: float) -> void:
 
 	# A large one-frame move indicates the player used the reset/recenter action.
 	if player_movement > 60.0:
+		cancel_revelation()
 		place_new_destination()
 		return
 
@@ -168,6 +194,73 @@ func create_destination_visual() -> void:
 	pillar.mesh = pillar_mesh
 	pillar.material_override = marker_material
 	marker.add_child(pillar)
+
+
+func create_revelation_visuals() -> void:
+	revelation_root = Node3D.new()
+	revelation_root.name = "SignalRevelation"
+	revelation_root.visible = false
+	add_child(revelation_root)
+
+	var ring_mesh := TorusMesh.new()
+	ring_mesh.inner_radius = 2.55
+	ring_mesh.outer_radius = 2.8
+	ring_mesh.rings = 24
+	ring_mesh.ring_segments = 6
+	for ring_index in range(3):
+		var ring := MeshInstance3D.new()
+		ring.name = "RevelationRing_%d" % ring_index
+		ring.mesh = ring_mesh
+		var material := create_revelation_material()
+		ring.material_override = material
+		if ring_index == 1:
+			ring.position.y = 4.0
+			ring.rotation.x = PI * 0.5
+		elif ring_index == 2:
+			ring.position.y = 6.5
+			ring.rotation = Vector3(PI * 0.32, 0.0, PI * 0.5)
+		revelation_root.add_child(ring)
+		revelation_rings.append(ring)
+		revelation_ring_materials.append(material)
+
+	var beam_mesh := CylinderMesh.new()
+	beam_mesh.top_radius = 0.18
+	beam_mesh.bottom_radius = 0.65
+	beam_mesh.height = 22.0
+	beam_mesh.radial_segments = 8
+	revelation_beam = MeshInstance3D.new()
+	revelation_beam.name = "RevelationShimmer"
+	revelation_beam.position.y = 11.0
+	revelation_beam.mesh = beam_mesh
+	revelation_beam_material = create_revelation_material()
+	revelation_beam.material_override = revelation_beam_material
+	revelation_root.add_child(revelation_beam)
+
+	var glint_mesh := CylinderMesh.new()
+	glint_mesh.top_radius = 0.055
+	glint_mesh.bottom_radius = 0.12
+	glint_mesh.height = 12.0
+	glint_mesh.radial_segments = 5
+	revelation_glint_material = create_revelation_material()
+	for glint_index in range(4):
+		var glint := MeshInstance3D.new()
+		glint.name = "DistantAnswer_%d" % glint_index
+		glint.mesh = glint_mesh
+		glint.material_override = revelation_glint_material
+		revelation_root.add_child(glint)
+		revelation_glints.append(glint)
+
+
+func create_revelation_material() -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.albedo_color = Color(revelation_color, 0.0)
+	material.emission_enabled = true
+	material.emission = revelation_color
+	material.emission_energy_multiplier = 0.0
+	material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	return material
 
 
 func place_new_destination() -> void:
@@ -565,13 +658,19 @@ func begin_destination_response() -> void:
 	is_resolving = true
 	response_time = 0.0
 	destinations_reached += 1
+	revelation_origin = Vector3(
+		marker.global_position.x,
+		destination_ground_height + 0.12,
+		marker.global_position.z
+	)
 	destination_reached.emit()
+	start_revelation()
 	advance_journey_heading()
 
 
 func update_destination_response(delta: float) -> void:
 	response_time += delta
-	var progress: float = clampf(response_time / 0.7, 0.0, 1.0)
+	var progress: float = clampf(response_time / 0.9, 0.0, 1.0)
 	var flash_scale: float = 1.0 + sin(progress * PI) * 0.75
 	marker.scale = Vector3.ONE * flash_scale
 	marker.rotation.y += delta * 1.8
@@ -579,11 +678,119 @@ func update_destination_response(delta: float) -> void:
 	marker_material.emission_energy_multiplier = signal_base_emission + sin(progress * PI) * 1.8
 
 	if progress >= 1.0:
+		marker.visible = false
+
+
+func start_revelation() -> void:
+	revelation_active = true
+	revelation_timer = 0.0
+	next_revelation_pulse_index = 1
+	pending_next_signal = true
+	revelation_color = signal_emission
+	revelation_root.global_position = revelation_origin
+	revelation_root.visible = true
+	for ring in revelation_rings:
+		ring.visible = true
+		ring.scale = Vector3.ONE * 0.2
+	revelation_beam.visible = true
+	for glint_index in range(revelation_glints.size()):
+		var angle: float = TAU * float(glint_index) / float(revelation_glints.size()) + 0.45
+		var radius: float = 19.0 + float(glint_index % 2) * 11.0
+		var offset := Vector2(cos(angle), sin(angle)) * radius
+		var world_x: float = revelation_origin.x + offset.x
+		var world_z: float = revelation_origin.z + offset.y
+		var ground_height: float = get_terrain_height(world_x, world_z)
+		revelation_glints[glint_index].position = Vector3(
+			offset.x,
+			ground_height - revelation_origin.y + 6.0,
+			offset.y
+		)
+		revelation_glints[glint_index].visible = true
+	apply_revelation_color()
+	revelation_pulse.emit(0)
+
+
+func update_revelation(delta: float) -> void:
+	revelation_timer += delta
+	while (
+		next_revelation_pulse_index < 3
+		and revelation_timer >= float(next_revelation_pulse_index)
+	):
+		revelation_pulse.emit(next_revelation_pulse_index)
+		next_revelation_pulse_index += 1
+	var progress: float = clampf(revelation_timer / maxf(revelation_duration, 0.1), 0.0, 1.0)
+	for ring_index in range(revelation_rings.size()):
+		var delayed_progress: float = clampf(
+			(progress - float(ring_index) * 0.055) / (1.0 - float(ring_index) * 0.055),
+			0.0,
+			1.0
+		)
+		var ring: MeshInstance3D = revelation_rings[ring_index]
+		if ring_index == 0:
+			var maximum_scale: float = revelation_shockwave_radius / 2.8
+			ring.scale = Vector3.ONE * lerpf(0.35, maximum_scale, delayed_progress)
+			ring.position.y = 0.08 + delayed_progress * 0.22
+		else:
+			var orbit_scale: float = lerpf(0.4, 5.2 + ring_index * 1.1, delayed_progress)
+			ring.scale = Vector3.ONE * orbit_scale
+			ring.rotation.y += delta * (0.18 + ring_index * 0.09)
+		var entrance: float = clampf(delayed_progress / 0.08, 0.0, 1.0)
+		var alpha: float = entrance * pow(1.0 - delayed_progress, 1.35)
+		set_revelation_material_strength(
+			revelation_ring_materials[ring_index],
+			alpha * 0.46 * revelation_intensity
+		)
+
+	var beam_alpha: float = pow(1.0 - progress, 1.8) * 0.22 * revelation_intensity
+	revelation_beam.scale = Vector3(
+		1.0 + progress * 1.5,
+		1.0,
+		1.0 + progress * 1.5
+	)
+	set_revelation_material_strength(revelation_beam_material, beam_alpha)
+	var glint_alpha: float = sin(progress * PI) * 0.12 * revelation_intensity
+	set_revelation_material_strength(revelation_glint_material, glint_alpha)
+	for glint_index in range(revelation_glints.size()):
+		var glint: MeshInstance3D = revelation_glints[glint_index]
+		glint.scale.y = 0.72 + sin(progress * PI + glint_index * 0.7) * 0.18
+
+	if pending_next_signal and revelation_timer >= next_signal_delay:
+		pending_next_signal = false
 		place_new_destination()
+	if progress >= 1.0:
+		cancel_revelation()
+
+
+func apply_revelation_color() -> void:
+	for material in revelation_ring_materials:
+		material.emission = revelation_color
+	revelation_beam_material.emission = revelation_color
+	revelation_glint_material.emission = revelation_color
+
+
+func set_revelation_material_strength(
+	material: StandardMaterial3D,
+	strength: float
+) -> void:
+	material.albedo_color = Color(revelation_color, strength)
+	material.emission = revelation_color
+	material.emission_energy_multiplier = strength * 2.2
+
+
+func cancel_revelation() -> void:
+	revelation_active = false
+	pending_next_signal = false
+	next_revelation_pulse_index = 0
+	revelation_timer = 0.0
+	if revelation_root != null:
+		revelation_root.visible = false
 
 
 func _on_dimension_changed(dimension_id: StringName, _display_name: String) -> void:
 	apply_dimension_signal_profile(dimension_id)
+	if revelation_active:
+		revelation_color = signal_emission
+		apply_revelation_color()
 
 
 func apply_dimension_signal_profile(dimension_id: StringName) -> void:
@@ -653,3 +860,15 @@ func get_direction_offset_degrees() -> float:
 
 func is_launch_route_favored() -> bool:
 	return current_route_favors_launch
+
+
+func is_revelation_active() -> bool:
+	return revelation_active
+
+
+func get_revelation_timer() -> float:
+	return revelation_timer
+
+
+func get_revelation_duration() -> float:
+	return revelation_duration

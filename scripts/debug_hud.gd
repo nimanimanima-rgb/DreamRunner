@@ -65,6 +65,10 @@ func _process(_delta: float) -> void:
 		if atmosphere != null:
 			terrain_text += "\nDream motes: %d" % atmosphere.call("get_active_mote_count")
 			terrain_text += "\nDimension: %s" % atmosphere.call("get_current_dimension_name")
+			terrain_text += "\nSky pulse: %.2f (index %d)" % [
+				float(atmosphere.call("get_revelation_pulse_amount")),
+				int(atmosphere.call("get_revelation_pulse_index")),
+			]
 		if destination_manager != null:
 			var destination_distance: float = float(
 				destination_manager.call("get_destination_distance")
@@ -82,6 +86,13 @@ func _process(_delta: float) -> void:
 			terrain_text += "\nLaunch route: %s" % (
 				"favored" if bool(destination_manager.call("is_launch_route_favored")) else "normal"
 			)
+			if bool(destination_manager.call("is_revelation_active")):
+				terrain_text += "\nRevelation: active %.1f / %.1f s" % [
+					float(destination_manager.call("get_revelation_timer")),
+					float(destination_manager.call("get_revelation_duration")),
+				]
+			else:
+				terrain_text += "\nRevelation: inactive"
 		if audio_manager != null:
 			var audio_state: String = "muted" if bool(audio_manager.call("is_audio_muted")) else "on"
 			if not bool(audio_manager.call("is_audio_unlocked")):

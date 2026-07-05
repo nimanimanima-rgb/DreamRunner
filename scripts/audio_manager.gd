@@ -7,6 +7,12 @@ extends Node
 @export_range(-45.0, -8.0, 1.0) var ambience_volume_db: float = -27.0
 @export_range(-40.0, -6.0, 1.0) var signal_volume_db: float = -17.0
 @export_range(0.0, 0.5, 0.01) var movement_wind_boost: float = 0.18
+@export_group("Revelation Bass")
+@export_range(32.0, 72.0, 1.0) var revelation_bass_frequency: float = 48.0
+@export_range(0.05, 0.5, 0.01) var revelation_bass_gain: float = 0.24
+@export_range(0.08, 0.3, 0.01) var revelation_bass_attack: float = 0.15
+@export_range(1.5, 7.0, 0.1) var revelation_bass_decay_rate: float = 3.8
+@export_range(0.0, 0.5, 0.01) var revelation_bass_harmonic: float = 0.2
 
 @onready var player: CharacterBody3D = get_node(player_path)
 @onready var atmosphere: Node = get_node(atmosphere_path)
@@ -15,8 +21,9 @@ extends Node
 @onready var signal_player: AudioStreamPlayer = $SignalResonance
 
 const MIX_RATE: float = 22050.0
-const SIGNAL_DURATION: float = 1.8
+const SIGNAL_DURATION: float = 3.6
 const DIMENSION_CUE_DURATION: float = 0.65
+const REVELATION_BASS_DURATION: float = 0.9
 
 var random := RandomNumberGenerator.new()
 var ambience_playback: AudioStreamGeneratorPlayback
@@ -28,6 +35,8 @@ var slow_wind: float = 0.0
 var drone_phase: float = 0.0
 var signal_sample: int = 0
 var signal_active: bool = false
+var revelation_bass_sample: int = 0
+var revelation_bass_active: bool = false
 var current_wind_level: float = 0.7
 var current_drone_level: float = 0.08
 var current_drone_frequency: float = 58.0
@@ -47,6 +56,7 @@ func _ready() -> void:
 	create_generator_streams()
 	player.connect("dream_entered", unlock_audio)
 	destination_manager.connect("destination_reached", play_signal_resonance)
+	destination_manager.connect("revelation_pulse", play_revelation_bass_pulse)
 	atmosphere.connect("dimension_changed", play_dimension_transition_cue)
 	atmosphere.connect("dimension_changed", update_dimension_targets)
 	update_dimension_targets(atmosphere.call("get_current_dimension_id"), "")
@@ -187,24 +197,60 @@ func play_signal_resonance() -> void:
 	signal_playback = signal_player.get_stream_playback() as AudioStreamGeneratorPlayback
 
 
+func play_revelation_bass_pulse(_pulse_index: int) -> void:
+	if not audio_unlocked or audio_muted:
+		return
+	revelation_bass_sample = 0
+	revelation_bass_active = true
+	if not signal_player.playing:
+		signal_player.play()
+		signal_playback = signal_player.get_stream_playback() as AudioStreamGeneratorPlayback
+
+
 func fill_signal_buffer() -> void:
-	if not signal_active or signal_playback == null:
+	if (not signal_active and not revelation_bass_active) or signal_playback == null:
 		return
 	var total_samples: int = int(SIGNAL_DURATION * MIX_RATE)
 	for _frame in range(signal_playback.get_frames_available()):
-		if signal_sample >= total_samples:
-			signal_active = false
-			break
-		var time: float = float(signal_sample) / MIX_RATE
-		var progress: float = time / SIGNAL_DURATION
-		var envelope: float = sin(minf(progress * PI * 2.2, PI)) * exp(-2.6 * time)
-		var resonance: float = (
-			sin(TAU * current_signal_frequency * time)
-			+ sin(TAU * current_signal_frequency * 1.5 * time) * 0.38
-			+ sin(TAU * current_signal_frequency * 0.5 * time) * 0.3
-		) * envelope * 0.28
-		signal_playback.push_frame(Vector2(resonance, resonance * 0.94))
-		signal_sample += 1
+		var resonance: float = 0.0
+		if signal_active:
+			if signal_sample >= total_samples:
+				signal_active = false
+			else:
+				var time: float = float(signal_sample) / MIX_RATE
+				var progress: float = time / SIGNAL_DURATION
+				var envelope: float = sin(minf(progress * PI * 2.2, PI)) * exp(-2.6 * time)
+				resonance = (
+					sin(TAU * current_signal_frequency * time)
+					+ sin(TAU * current_signal_frequency * 1.5 * time) * 0.38
+					+ sin(TAU * current_signal_frequency * 0.5 * time) * 0.3
+				) * envelope * 0.28
+				signal_sample += 1
+
+		var bass_pulse: float = get_revelation_bass_sample()
+		var final_signal: float = clampf(resonance + bass_pulse, -0.85, 0.85)
+		signal_playback.push_frame(Vector2(final_signal, final_signal * 0.94))
+
+
+func get_revelation_bass_sample() -> float:
+	if not revelation_bass_active:
+		return 0.0
+	var local_time: float = float(revelation_bass_sample) / MIX_RATE
+	if local_time >= REVELATION_BASS_DURATION:
+		revelation_bass_active = false
+		return 0.0
+	var attack: float = sin(
+		clampf(local_time / maxf(revelation_bass_attack, 0.01), 0.0, 1.0)
+		* PI * 0.5
+	)
+	var tail_fade: float = 1.0 - smoothstep(0.72, REVELATION_BASS_DURATION, local_time)
+	var envelope: float = attack * exp(-revelation_bass_decay_rate * local_time) * tail_fade
+	var fundamental: float = sin(TAU * revelation_bass_frequency * local_time)
+	var harmonic: float = sin(TAU * revelation_bass_frequency * 2.0 * local_time)
+	revelation_bass_sample += 1
+	return (
+		fundamental + harmonic * revelation_bass_harmonic
+	) * envelope * revelation_bass_gain
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -214,6 +260,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if audio_muted:
 			signal_player.stop()
 			signal_active = false
+			revelation_bass_active = false
 		get_viewport().set_input_as_handled()
 
 
