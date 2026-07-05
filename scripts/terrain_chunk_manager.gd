@@ -6,24 +6,38 @@ const LAMP_POST_SCENE: PackedScene = preload("res://scenes/props/LampPost.tscn")
 @export var player_path: NodePath
 @export var chunk_size: float = 160.0
 @export_range(8, 40, 1) var grid_resolution: int = 20
+# Detailed chunks carry collision, grass, and props. The outer visible ring is
+# terrain-only so elevated views gain a softer horizon at modest Web cost.
 @export_range(1, 4, 1) var active_radius: int = 2
+@export_range(2, 6, 1) var visible_terrain_radius: int = 4
+@export_range(6, 20, 1) var mid_grid_resolution: int = 10
+
+@export_group("Far World Rendering")
+@export var far_world_enabled: bool = true
+@export_range(24, 96, 8) var far_world_radial_segments: int = 64
+@export_range(700.0, 1200.0, 20.0) var far_terrain_inner_radius: float = 700.0
+@export_range(1200.0, 2200.0, 50.0) var far_terrain_outer_radius: float = 1650.0
+@export_range(1600.0, 2600.0, 50.0) var horizon_outer_radius: float = 2300.0
 
 @export_group("Rolling Hills")
-@export var height_amplitude: float = 18.0
-@export var terrain_scale: float = 0.0028
+# EXPERIMENT: stronger mid-scale relief, still broad enough for fast traversal.
+@export var height_amplitude: float = 26.0
+@export var terrain_scale: float = 0.00245
 @export var terrain_seed: int = 1337
 
 @export_group("Dramatic Highland Masses")
-@export_range(0.0, 30.0, 0.5) var highland_mass_amplitude: float = 14.0
-@export_range(0.0004, 0.003, 0.00005) var highland_mass_scale: float = 0.00105
-@export_range(1.0, 1.6, 0.05) var valley_depth_multiplier: float = 1.25
+# EXPERIMENT: horizon-scale masses create the tallest ridges and deepest valleys.
+@export_range(0.0, 36.0, 0.5) var highland_mass_amplitude: float = 24.0
+@export_range(0.0004, 0.003, 0.00005) var highland_mass_scale: float = 0.00085
+@export_range(1.0, 1.8, 0.05) var valley_depth_multiplier: float = 1.45
 
 @export_group("Natural Launch Terrain")
-@export_range(0.0, 24.0, 0.5) var launch_height_amplitude: float = 20.0
-@export_range(0.0005, 0.004, 0.00005) var launch_region_scale: float = 0.00085
-@export_range(0.001, 0.008, 0.0001) var launch_shape_scale: float = 0.0019
-@export_range(0.0, 0.8, 0.01) var launch_region_threshold: float = 0.12
-@export_range(0.0, 1.0, 0.05) var ridge_lip_strength: float = 0.4
+# EXPERIMENT: broad shelves and stronger crest lips lengthen natural glide lines.
+@export_range(0.0, 32.0, 0.5) var launch_height_amplitude: float = 28.0
+@export_range(0.0005, 0.004, 0.00005) var launch_region_scale: float = 0.00072
+@export_range(0.001, 0.008, 0.0001) var launch_shape_scale: float = 0.0016
+@export_range(0.0, 0.8, 0.01) var launch_region_threshold: float = 0.06
+@export_range(0.0, 1.0, 0.05) var ridge_lip_strength: float = 0.6
 
 @export_group("Nature Props")
 @export_range(0, 8, 1) var trees_per_chunk: int = 2
@@ -34,6 +48,9 @@ const LAMP_POST_SCENE: PackedScene = preload("res://scenes/props/LampPost.tscn")
 @export var prop_border_margin: float = 14.0
 @export var minimum_prop_spacing: float = 12.0
 @export var spawn_clear_radius: float = 55.0
+@export_range(0.8, 1.0, 0.01) var tree_minimum_normal_y: float = 0.95
+@export_range(0.1, 1.5, 0.05) var tree_maximum_base_height_spread: float = 0.65
+@export_range(0.0, 0.5, 0.05) var tree_ground_embed: float = 0.2
 
 @export_group("Highland Grass")
 @export_range(0, 96, 4) var grass_clumps_per_chunk: int = 48
@@ -62,7 +79,7 @@ const LAMP_POST_SCENE: PackedScene = preload("res://scenes/props/LampPost.tscn")
 @export var giant_prop_clearance: float = 60.0
 @export var guarantee_nearby_test_ring: bool = true
 @export var guaranteed_ring_chunk: Vector2i = Vector2i(2, 0)
-@export_range(3, 10, 1) var far_landmark_radius: int = 6
+@export_range(3, 14, 1) var far_landmark_radius: int = 11
 
 @export_group("Tree Scale Tuning")
 @export_range(3.0, 15.0, 0.5) var min_tree_height: float = 5.0
@@ -95,7 +112,12 @@ const LAMP_POST_SCENE: PackedScene = preload("res://scenes/props/LampPost.tscn")
 @onready var atmosphere: Node = get_node_or_null(atmosphere_path)
 
 var active_chunks: Dictionary = {}
+var chunk_detail_levels: Dictionary = {}
 var far_landmark_proxies: Dictionary = {}
+var far_terrain_instance: MeshInstance3D
+var horizon_terrain_instance: MeshInstance3D
+var far_terrain_material: StandardMaterial3D
+var horizon_terrain_material: StandardMaterial3D
 var current_chunk := Vector2i.ZERO
 
 var terrain_noise: FastNoiseLite
@@ -164,6 +186,7 @@ var animation_time: float = 0.0
 
 func _ready() -> void:
 	create_shared_resources()
+	create_far_world_layers()
 	if atmosphere != null:
 		atmosphere.connect("dimension_changed", _on_dimension_changed)
 	current_chunk = world_to_chunk(player.global_position)
@@ -448,8 +471,8 @@ func create_chunk_grass(chunk: StaticBody3D, coordinate: Vector2i) -> void:
 	grass_instance.name = "HighlandGrass"
 	grass_instance.multimesh = grass_multimesh
 	grass_instance.custom_aabb = AABB(
-		Vector3(-chunk_size * 0.5, -20.0, -chunk_size * 0.5),
-		Vector3(chunk_size, 60.0, chunk_size)
+		Vector3(-chunk_size * 0.5, -50.0, -chunk_size * 0.5),
+		Vector3(chunk_size, 130.0, chunk_size)
 	)
 	chunk.add_child(grass_instance)
 
@@ -461,6 +484,114 @@ func sample_surface_normal(world_x: float, world_z: float) -> Vector3:
 		offset * 2.0,
 		sample_height(world_x, world_z - offset) - sample_height(world_x, world_z + offset)
 	).normalized()
+
+
+func create_far_world_layers() -> void:
+	far_terrain_material = create_grass_material(Color(0.28, 0.31, 0.29))
+	horizon_terrain_material = create_grass_material(Color(0.22, 0.26, 0.27))
+	far_terrain_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	horizon_terrain_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+
+	far_terrain_instance = MeshInstance3D.new()
+	far_terrain_instance.name = "FarTerrainRing"
+	far_terrain_instance.material_override = far_terrain_material
+	add_child(far_terrain_instance)
+
+	horizon_terrain_instance = MeshInstance3D.new()
+	horizon_terrain_instance.name = "HorizonTerrainImpostor"
+	horizon_terrain_instance.material_override = horizon_terrain_material
+	add_child(horizon_terrain_instance)
+	update_far_world_materials()
+
+
+func update_far_world_layers() -> void:
+	if far_terrain_instance == null or horizon_terrain_instance == null:
+		return
+	far_terrain_instance.visible = far_world_enabled
+	horizon_terrain_instance.visible = far_world_enabled
+	if not far_world_enabled:
+		return
+	var center := Vector2(
+		current_chunk.x * chunk_size,
+		current_chunk.y * chunk_size
+	)
+	far_terrain_instance.position = Vector3(center.x, 0.0, center.y)
+	horizon_terrain_instance.position = far_terrain_instance.position
+	far_terrain_instance.mesh = generate_radial_terrain_mesh(
+		center, far_terrain_inner_radius, far_terrain_outer_radius, 4, false
+	)
+	horizon_terrain_instance.mesh = generate_radial_terrain_mesh(
+		center, far_terrain_outer_radius, horizon_outer_radius, 3, true
+	)
+
+
+func generate_radial_terrain_mesh(
+	center: Vector2,
+	inner_radius: float,
+	outer_radius: float,
+	radial_steps: int,
+	add_horizon_silhouette: bool
+) -> ArrayMesh:
+	var row_size: int = far_world_radial_segments + 1
+	var vertices := PackedVector3Array()
+	var normals := PackedVector3Array()
+	var indices := PackedInt32Array()
+	for radial_index in range(radial_steps + 1):
+		var radial_weight: float = float(radial_index) / float(radial_steps)
+		var radius: float = lerpf(inner_radius, outer_radius, radial_weight)
+		for segment in range(far_world_radial_segments + 1):
+			var angle: float = TAU * float(segment) / float(far_world_radial_segments)
+			var local_x: float = cos(angle) * radius
+			var local_z: float = sin(angle) * radius
+			# Sit slightly beneath overlapping square LOD chunks to prevent distant
+			# z-fighting while preserving the same underlying height silhouette.
+			var height: float = sample_height(center.x + local_x, center.y + local_z) - 2.0
+			if add_horizon_silhouette:
+				# Broad angular waves lift only the remote band into irregular ridge
+				# silhouettes; dense fog dissolves its outer boundary into the sky.
+				var ridge_wave: float = (
+					maxf(sin(angle * 3.0 + 0.8), 0.0) * 34.0
+					+ maxf(cos(angle * 5.0 - 0.35), 0.0) * 18.0
+				)
+				height += smoothstep(0.0, 0.72, radial_weight) * (18.0 + ridge_wave)
+			vertices.append(Vector3(local_x, height, local_z))
+			normals.append(Vector3.UP)
+	for radial_index in range(radial_steps):
+		for segment in range(far_world_radial_segments):
+			var inner_left: int = radial_index * row_size + segment
+			var inner_right: int = inner_left + 1
+			var outer_left: int = inner_left + row_size
+			var outer_right: int = outer_left + 1
+			indices.append_array(PackedInt32Array([
+				inner_left, inner_right, outer_left,
+				inner_right, outer_right, outer_left,
+			]))
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_NORMAL] = normals
+	arrays[Mesh.ARRAY_INDEX] = indices
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	return mesh
+
+
+func update_far_world_materials() -> void:
+	if far_terrain_material == null or horizon_terrain_material == null:
+		return
+	# Near terrain blends these two dusty greens through vertex color. Darkening
+	# their exact midpoint preserves its olive hue; no white/grey tint is added.
+	var ground_green: Color = grass_color_a.lerp(grass_color_b, 0.5)
+	var colors: Dictionary = {
+		&"pale_dawn": [ground_green.darkened(0.1), ground_green.darkened(0.18)],
+		&"cold_overcast": [Color(0.22, 0.265, 0.28), Color(0.15, 0.19, 0.215)],
+		&"golden_dissolve": [ground_green.darkened(0.08), ground_green.darkened(0.16)],
+		&"blue_liminal_night": [Color(0.09, 0.13, 0.2), Color(0.045, 0.075, 0.135)],
+		&"dust_haze_afternoon": [ground_green.darkened(0.12), ground_green.darkened(0.2)],
+	}
+	var profile: Array = colors.get(current_dimension_id, colors[&"pale_dawn"])
+	far_terrain_material.albedo_color = profile[0]
+	horizon_terrain_material.albedo_color = profile[1]
 
 
 func create_landmark_dimension_materials() -> void:
@@ -580,21 +711,34 @@ func world_to_chunk(world_position: Vector3) -> Vector2i:
 func update_chunks() -> void:
 	var needed_chunks: Dictionary = {}
 
-	for x in range(current_chunk.x - active_radius, current_chunk.x + active_radius + 1):
-		for z in range(current_chunk.y - active_radius, current_chunk.y + active_radius + 1):
+	for x in range(
+		current_chunk.x - visible_terrain_radius,
+		current_chunk.x + visible_terrain_radius + 1
+	):
+		for z in range(
+			current_chunk.y - visible_terrain_radius,
+			current_chunk.y + visible_terrain_radius + 1
+		):
 			var coordinate := Vector2i(x, z)
-			needed_chunks[coordinate] = true
-			if not active_chunks.has(coordinate):
-				create_chunk(coordinate)
+			var is_detailed: bool = is_coordinate_in_detailed_radius(coordinate)
+			needed_chunks[coordinate] = is_detailed
+			if (
+				not active_chunks.has(coordinate)
+				or bool(chunk_detail_levels.get(coordinate, false)) != is_detailed
+			):
+				if active_chunks.has(coordinate):
+					remove_chunk(coordinate)
+				create_chunk(coordinate, is_detailed)
 
 	for coordinate in active_chunks.keys():
 		if not needed_chunks.has(coordinate):
 			remove_chunk(coordinate)
 
 	update_far_landmark_proxies()
+	update_far_world_layers()
 
 
-func create_chunk(coordinate: Vector2i) -> void:
+func create_chunk(coordinate: Vector2i, is_detailed: bool = true) -> void:
 	var chunk := StaticBody3D.new()
 	chunk.name = "Chunk_%d_%d" % [coordinate.x, coordinate.y]
 	chunk.position = Vector3(
@@ -603,7 +747,8 @@ func create_chunk(coordinate: Vector2i) -> void:
 		coordinate.y * chunk_size
 	)
 
-	var terrain_mesh := generate_chunk_mesh(coordinate)
+	var terrain_resolution: int = grid_resolution if is_detailed else mid_grid_resolution
+	var terrain_mesh := generate_chunk_mesh(coordinate, terrain_resolution)
 
 	var mesh_instance := MeshInstance3D.new()
 	mesh_instance.name = "Mesh"
@@ -611,18 +756,20 @@ func create_chunk(coordinate: Vector2i) -> void:
 	mesh_instance.material_override = material_a
 	chunk.add_child(mesh_instance)
 
-	var collision := CollisionShape3D.new()
-	collision.name = "Collision"
-	collision.shape = terrain_mesh.create_trimesh_shape()
-	chunk.add_child(collision)
-	create_chunk_grass(chunk, coordinate)
-
-	var generated_counts: Vector2i = create_chunk_props(chunk, coordinate)
+	var generated_counts := Vector2i.ZERO
+	if is_detailed:
+		var collision := CollisionShape3D.new()
+		collision.name = "Collision"
+		collision.shape = terrain_mesh.create_trimesh_shape()
+		chunk.add_child(collision)
+		create_chunk_grass(chunk, coordinate)
+		generated_counts = create_chunk_props(chunk, coordinate)
 	var prop_count: int = generated_counts.x
 	var giant_count: int = generated_counts.y
 
 	add_child(chunk)
 	active_chunks[coordinate] = chunk
+	chunk_detail_levels[coordinate] = is_detailed
 	chunk_prop_counts[coordinate] = prop_count
 	chunk_giant_counts[coordinate] = giant_count
 	active_prop_count += prop_count
@@ -637,9 +784,10 @@ func create_chunk_props(chunk: StaticBody3D, coordinate: Vector2i) -> Vector2i:
 	var placed_positions: Array[Vector2] = []
 
 	for tree_index in range(trees_per_chunk):
-		var tree_position := get_random_prop_position(random, coordinate, placed_positions)
+		var tree_position := find_tree_position(random, coordinate, placed_positions)
 		if (
-			is_spawn_area_clear(coordinate, tree_position)
+			tree_position != Vector3.INF
+			and is_spawn_area_clear(coordinate, tree_position)
 			and is_prop_spacing_clear(tree_position, placed_positions)
 		):
 			create_tree(chunk, tree_position, tree_index, random)
@@ -655,6 +803,7 @@ func create_chunk_props(chunk: StaticBody3D, coordinate: Vector2i) -> Vector2i:
 				if (
 					is_spawn_area_clear(coordinate, companion_position)
 					and is_prop_spacing_clear(companion_position, placed_positions, 5.0)
+					and is_tree_site_suitable(coordinate, companion_position)
 				):
 					create_tree(chunk, companion_position, tree_index + 100, random, 0.72)
 					placed_positions.append(Vector2(companion_position.x, companion_position.z))
@@ -697,9 +846,10 @@ func create_chunk_props(chunk: StaticBody3D, coordinate: Vector2i) -> Vector2i:
 		1.0
 	)
 	if random.randf() < passive_trace_chance:
-		var trace_position := get_random_prop_position(random, coordinate, placed_positions)
+		var trace_position := find_story_trace_position(random, coordinate, placed_positions)
 		if (
-			is_spawn_area_clear(coordinate, trace_position)
+			trace_position != Vector3.INF
+			and is_spawn_area_clear(coordinate, trace_position)
 			and is_prop_spacing_clear(trace_position, placed_positions, passive_trace_min_distance)
 		):
 			create_story_trace(chunk, trace_position, random)
@@ -904,6 +1054,7 @@ func _on_dimension_changed(dimension_id: StringName, _display_name: String) -> v
 			lamp.set_meta("dimension_id", dimension_id)
 			lamp.call("apply_dimension_profile", dimension_id)
 	update_dimension_landmarks()
+	update_far_world_materials()
 
 
 func update_story_trace_visibility(trace: Node3D) -> void:
@@ -1053,7 +1204,9 @@ func update_far_landmark_proxies() -> void:
 	for x in range(current_chunk.x - far_landmark_radius, current_chunk.x + far_landmark_radius + 1):
 		for z in range(current_chunk.y - far_landmark_radius, current_chunk.y + far_landmark_radius + 1):
 			var coordinate := Vector2i(x, z)
-			if is_coordinate_in_active_radius(coordinate):
+			# Terrain-only outer chunks still use the cheap landmark proxy; only
+			# detailed chunks own the full landmark geometry and collision.
+			if is_coordinate_in_detailed_radius(coordinate):
 				continue
 			if not is_giant_landmark_chunk(coordinate):
 				continue
@@ -1069,7 +1222,7 @@ func update_far_landmark_proxies() -> void:
 			proxy.queue_free()
 
 
-func is_coordinate_in_active_radius(coordinate: Vector2i) -> bool:
+func is_coordinate_in_detailed_radius(coordinate: Vector2i) -> bool:
 	return (
 		absi(coordinate.x - current_chunk.x) <= active_radius
 		and absi(coordinate.y - current_chunk.y) <= active_radius
@@ -1203,6 +1356,86 @@ func get_large_rock_position(
 			best_position = candidate
 
 	return best_position
+
+
+func find_tree_position(
+	random: RandomNumberGenerator,
+	coordinate: Vector2i,
+	placed_positions: Array[Vector2]
+) -> Vector3:
+	var half_size: float = chunk_size * 0.5 - prop_border_margin
+	for _attempt in range(14):
+		var candidate := Vector3(
+			random.randf_range(-half_size, half_size),
+			0.0,
+			random.randf_range(-half_size, half_size)
+		)
+		var world_x: float = coordinate.x * chunk_size + candidate.x
+		var world_z: float = coordinate.y * chunk_size + candidate.z
+		candidate.y = sample_height(world_x, world_z)
+		if not is_spawn_area_clear(coordinate, candidate):
+			continue
+		if not is_prop_spacing_clear(candidate, placed_positions):
+			continue
+		if is_tree_site_suitable(coordinate, candidate):
+			return candidate
+	return Vector3.INF
+
+
+func find_story_trace_position(
+	random: RandomNumberGenerator,
+	coordinate: Vector2i,
+	placed_positions: Array[Vector2]
+) -> Vector3:
+	var half_size: float = chunk_size * 0.5 - prop_border_margin
+	for _attempt in range(12):
+		var candidate := Vector3(
+			random.randf_range(-half_size, half_size),
+			0.0,
+			random.randf_range(-half_size, half_size)
+		)
+		var world_x: float = coordinate.x * chunk_size + candidate.x
+		var world_z: float = coordinate.y * chunk_size + candidate.z
+		candidate.y = sample_height(world_x, world_z)
+		if not is_spawn_area_clear(coordinate, candidate):
+			continue
+		if not is_prop_spacing_clear(candidate, placed_positions, passive_trace_min_distance):
+			continue
+		if is_foundation_site_suitable(world_x, world_z, 4.0, 1.0, 0.92):
+			return candidate
+	return Vector3.INF
+
+
+func is_tree_site_suitable(coordinate: Vector2i, local_position: Vector3) -> bool:
+	var world_x: float = coordinate.x * chunk_size + local_position.x
+	var world_z: float = coordinate.y * chunk_size + local_position.z
+	return is_foundation_site_suitable(
+		world_x,
+		world_z,
+		1.5,
+		tree_maximum_base_height_spread,
+		tree_minimum_normal_y
+	)
+
+
+func is_foundation_site_suitable(
+	world_x: float,
+	world_z: float,
+	base_radius: float,
+	maximum_height_spread: float,
+	minimum_normal_y: float
+) -> bool:
+	if sample_surface_normal(world_x, world_z).y < minimum_normal_y:
+		return false
+	# Four footing samples catch ridge lips that a center normal can miss.
+	var center_height: float = sample_height(world_x, world_z)
+	for offset in [
+		Vector2(base_radius, 0.0), Vector2(-base_radius, 0.0),
+		Vector2(0.0, base_radius), Vector2(0.0, -base_radius),
+	]:
+		if absf(sample_height(world_x + offset.x, world_z + offset.y) - center_height) > maximum_height_spread:
+			return false
+	return true
 
 
 func get_random_prop_position(
@@ -1528,7 +1761,9 @@ func create_tree(
 	var tree_scale: float = get_tree_scale(random) * scale_multiplier
 	var tree := Node3D.new()
 	tree.name = "Tree_%d" % index
-	tree.position = base_position
+	# A small visual embed hides sub-metre terrain variation without changing the
+	# trunk collision or tilting the whole tree downhill.
+	tree.position = base_position + Vector3.DOWN * tree_ground_embed
 	# Shared lean gives the grove a prevailing-wind identity; small variation
 	# keeps individual trees from becoming stamped copies.
 	tree.rotation.y = random.randf_range(-0.2, 0.2)
@@ -1755,10 +1990,11 @@ func animate_world_life() -> void:
 		landmark.scale = Vector3(base_scale.x * pulse, base_scale.y, base_scale.z * pulse)
 
 
-func generate_chunk_mesh(coordinate: Vector2i) -> ArrayMesh:
-	var vertex_count := (grid_resolution + 1) * (grid_resolution + 1)
-	var triangle_index_count := grid_resolution * grid_resolution * 6
-	var grid_step := chunk_size / float(grid_resolution)
+func generate_chunk_mesh(coordinate: Vector2i, resolution: int = -1) -> ArrayMesh:
+	var mesh_resolution: int = grid_resolution if resolution < 0 else resolution
+	var vertex_count := (mesh_resolution + 1) * (mesh_resolution + 1)
+	var triangle_index_count := mesh_resolution * mesh_resolution * 6
+	var grid_step := chunk_size / float(mesh_resolution)
 	var half_size := chunk_size * 0.5
 
 	var vertices := PackedVector3Array()
@@ -1774,12 +2010,12 @@ func generate_chunk_mesh(coordinate: Vector2i) -> ArrayMesh:
 
 	# Include one extra sample around the chunk so border normals are calculated
 	# from the same neighboring heights as the adjacent chunk.
-	var height_field_size := grid_resolution + 3
+	var height_field_size := mesh_resolution + 3
 	var height_field := PackedFloat32Array()
 	height_field.resize(height_field_size * height_field_size)
 
-	for sample_z in range(-1, grid_resolution + 2):
-		for sample_x in range(-1, grid_resolution + 2):
+	for sample_z in range(-1, mesh_resolution + 2):
+		for sample_x in range(-1, mesh_resolution + 2):
 			var local_x := -half_size + sample_x * grid_step
 			var local_z := -half_size + sample_z * grid_step
 			var world_x := coordinate.x * chunk_size + local_x
@@ -1787,9 +2023,9 @@ func generate_chunk_mesh(coordinate: Vector2i) -> ArrayMesh:
 			var field_index := (sample_z + 1) * height_field_size + sample_x + 1
 			height_field[field_index] = sample_height(world_x, world_z)
 
-	for z in range(grid_resolution + 1):
-		for x in range(grid_resolution + 1):
-			var vertex_index := z * (grid_resolution + 1) + x
+	for z in range(mesh_resolution + 1):
+		for x in range(mesh_resolution + 1):
+			var vertex_index := z * (mesh_resolution + 1) + x
 			var field_index := (z + 1) * height_field_size + x + 1
 			var local_x := -half_size + x * grid_step
 			var local_z := -half_size + z * grid_step
@@ -1797,8 +2033,8 @@ func generate_chunk_mesh(coordinate: Vector2i) -> ArrayMesh:
 
 			vertices[vertex_index] = Vector3(local_x, height, local_z)
 			uvs[vertex_index] = Vector2(
-				float(x) / grid_resolution,
-				float(z) / grid_resolution
+				float(x) / mesh_resolution,
+				float(z) / mesh_resolution
 			)
 
 			var height_left := height_field[field_index - 1]
@@ -1816,11 +2052,11 @@ func generate_chunk_mesh(coordinate: Vector2i) -> ArrayMesh:
 			colors[vertex_index] = get_terrain_vertex_color(world_x, world_z, height, normal)
 
 	var write_index := 0
-	for z in range(grid_resolution):
-		for x in range(grid_resolution):
-			var top_left := z * (grid_resolution + 1) + x
+	for z in range(mesh_resolution):
+		for x in range(mesh_resolution):
+			var top_left := z * (mesh_resolution + 1) + x
 			var top_right := top_left + 1
-			var bottom_left := top_left + grid_resolution + 1
+			var bottom_left := top_left + mesh_resolution + 1
 			var bottom_right := bottom_left + 1
 
 			# Godot uses clockwise winding for front faces. This order keeps both
@@ -1875,6 +2111,7 @@ func remove_chunk(coordinate: Vector2i) -> void:
 	chunk_prop_counts.erase(coordinate)
 	chunk_giant_counts.erase(coordinate)
 	active_chunks.erase(coordinate)
+	chunk_detail_levels.erase(coordinate)
 	chunk.queue_free()
 
 
@@ -1910,6 +2147,28 @@ func get_current_chunk_coordinate() -> Vector2i:
 
 func get_active_chunk_count() -> int:
 	return active_chunks.size()
+
+
+func get_detailed_chunk_count() -> int:
+	var detailed_count: int = 0
+	for is_detailed in chunk_detail_levels.values():
+		if bool(is_detailed):
+			detailed_count += 1
+	return detailed_count
+
+
+func get_far_world_status() -> String:
+	if not far_world_enabled:
+		return "off"
+	return "on (%dm-%dm)" % [roundi(far_terrain_inner_radius), roundi(horizon_outer_radius)]
+
+
+func get_playable_chunk_radius() -> int:
+	return active_radius
+
+
+func get_mid_terrain_radius() -> int:
+	return visible_terrain_radius
 
 
 func get_active_prop_count() -> int:

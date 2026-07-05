@@ -40,6 +40,10 @@ func _process(_delta: float) -> void:
 	if terrain_manager != null:
 		var chunk_coordinate = terrain_manager.call("get_current_chunk_coordinate")
 		var chunk_count = terrain_manager.call("get_active_chunk_count")
+		var detailed_chunk_count = terrain_manager.call("get_detailed_chunk_count")
+		var playable_radius = terrain_manager.call("get_playable_chunk_radius")
+		var mid_radius = terrain_manager.call("get_mid_terrain_radius")
+		var far_world_status = terrain_manager.call("get_far_world_status")
 		var prop_count = terrain_manager.call("get_active_prop_count")
 		var story_trace_count = terrain_manager.call("get_visible_story_trace_count")
 		var lamp_post_count = terrain_manager.call("get_active_lamp_post_count")
@@ -47,7 +51,9 @@ func _process(_delta: float) -> void:
 		var far_landmark_count = terrain_manager.call("get_far_landmark_proxy_count")
 		terrain_text = (
 			"\nChunk: (%d, %d)\n" % [chunk_coordinate.x, chunk_coordinate.y]
-			+ "Active chunks: %d\n" % chunk_count
+			+ "Terrain chunks: %d (%d detailed)\n" % [chunk_count, detailed_chunk_count]
+			+ "LOD radii: near %d / mid %d\n" % [playable_radius, mid_radius]
+			+ "Far world: %s\n" % far_world_status
 			+ "Active props: %d\n" % prop_count
 			+ "Story traces: %d\n" % story_trace_count
 			+ "Lamp posts: %d\n" % lamp_post_count

@@ -267,7 +267,7 @@ func create_dimension_layers() -> void:
 			"pale_dawn", "Waking / Pale World",
 			Color(0.12, 0.22, 0.31), Color(0.66, 0.59, 0.53),
 			Color(0.1, 0.12, 0.13), Color(0.34, 0.36, 0.33),
-			Color(0.52, 0.56, 0.58), 0.00165,
+			Color(0.52, 0.56, 0.58), 0.00145,
 			Color(0.48, 0.55, 0.6), 0.55,
 			Color(0.88, 0.76, 0.62), 1.0,
 			Color(0.58, 0.68, 0.76), 0.65
@@ -276,7 +276,7 @@ func create_dimension_layers() -> void:
 			"cold_overcast", "Dead / Empty World",
 			Color(0.055, 0.075, 0.095), Color(0.28, 0.32, 0.34),
 			Color(0.05, 0.065, 0.075), Color(0.22, 0.245, 0.25),
-			Color(0.34, 0.39, 0.42), 0.0021,
+			Color(0.34, 0.39, 0.42), 0.00185,
 			Color(0.31, 0.37, 0.41), 0.42,
 			Color(0.5, 0.59, 0.65), 0.62,
 			Color(0.43, 0.5, 0.57), 0.38
@@ -285,7 +285,7 @@ func create_dimension_layers() -> void:
 			"golden_dissolve", "Memory / Golden World",
 			Color(0.19, 0.24, 0.3), Color(0.76, 0.57, 0.36),
 			Color(0.13, 0.12, 0.1), Color(0.43, 0.37, 0.28),
-			Color(0.62, 0.51, 0.39), 0.0017,
+			Color(0.62, 0.51, 0.39), 0.0015,
 			Color(0.65, 0.54, 0.42), 0.62,
 			Color(0.96, 0.66, 0.36), 1.25,
 			Color(0.9, 0.7, 0.42), 0.95
@@ -294,7 +294,7 @@ func create_dimension_layers() -> void:
 			"blue_liminal_night", "Liminal Night / Dream-Between",
 			Color(0.012, 0.022, 0.055), Color(0.08, 0.12, 0.18),
 			Color(0.008, 0.015, 0.035), Color(0.06, 0.09, 0.16),
-			Color(0.08, 0.12, 0.18), 0.00165,
+			Color(0.08, 0.12, 0.18), 0.00145,
 			Color(0.15, 0.22, 0.38), 0.48,
 			Color(0.25, 0.4, 0.72), 0.62,
 			Color(0.48, 0.72, 1.0), 1.65
@@ -303,7 +303,7 @@ func create_dimension_layers() -> void:
 			"dust_haze_afternoon", "Forgotten Road / Dust World",
 			Color(0.39, 0.39, 0.37), Color(0.64, 0.57, 0.48),
 			Color(0.22, 0.2, 0.17), Color(0.43, 0.39, 0.34),
-			Color(0.55, 0.5, 0.43), 0.00205,
+			Color(0.55, 0.5, 0.43), 0.0018,
 			Color(0.58, 0.53, 0.47), 0.58,
 			Color(0.82, 0.67, 0.5), 0.9,
 			Color(0.68, 0.61, 0.53), 0.4

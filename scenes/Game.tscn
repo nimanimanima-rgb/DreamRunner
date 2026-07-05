@@ -66,7 +66,7 @@ ambient_light_energy = 0.55
 fog_enabled = true
 fog_light_color = Color(0.52, 0.56, 0.58, 1)
 fog_light_energy = 0.7
-fog_density = 0.00165
+fog_density = 0.00145
 fog_sky_affect = 0.35
 
 [node name="Game" type="Node3D"]
@@ -146,6 +146,7 @@ margin = 0.1
 [node name="Camera3D" type="Camera3D" parent="Player/CameraPivot/SpringArm3D"]
 current = true
 fov = 78.0
+far = 3000.0
 
 [node name="TerrainManager" type="Node3D" parent="."]
 script = ExtResource("2_terrain")

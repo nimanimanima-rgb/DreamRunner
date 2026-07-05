@@ -519,6 +519,8 @@ func get_preferred_direction() -> Vector3:
 
 
 func is_slope_suitable(candidate: Vector3) -> bool:
+	# The short check rejects abrupt lips; the broad check keeps signals off steep
+	# highland faces while still permitting destinations on large elevated shelves.
 	var center_height: float = candidate.y
 	for slope_check in [[5.0, 3.8], [11.0, 7.5]]:
 		var sample_offset: float = slope_check[0]

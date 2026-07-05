@@ -29,11 +29,16 @@ Dream signal placement is flow-first but no longer linear: a persistent journey 
 - The first Dream Highlands biome identity now unifies dusty olive grass, exposed earth, pale stone, cool fog valleys, wind-shaped vegetation, weathered human traces, restrained landmarks, and the pale dream signal.
 - Terrain uses browser-safe vertex color to blend muted grass, earth, stone, and cooler lowland tones without textures or custom shaders; the old alternating chunk-color look is gone.
 - Each streamed chunk carries one slope-filtered `MultiMesh` of 48 wind-leaning grass clumps, adding ground-scale richness without physics or per-blade nodes.
-- Dramatic Highlands terrain combines 18 m rolling relief, a 14 m low-frequency signed highland-mass layer with deeper valleys, and 20 m smooth launch shelves. The resulting broad ridges, elevated plateaus, crest lips, and layered lowlands create substantially longer natural glides while keeping one seamless world-space height function for visuals and collision.
+- The Extreme Dramatic Terrain experiment pushes rolling relief to 26 m, horizon-scale signed highland masses to 24 m with 1.45x deeper valleys, and broad launch shelves to 28 m. A ±1.2 km probe spans roughly 97 vertical metres, creating taller ridge silhouettes, deeper basins, and substantially longer glide lines while retaining one seamless world-space height function for visuals and collision.
+- These extreme terrain values are deliberately exposed and labeled as experimental tuning, not final biome balance; destination slope safeguards and flat-ground prop filters remain active.
+- Extreme terrain remains intact inside a three-layer far-world system. The inner 25 chunks are playable at 20x20 resolution; a 56-chunk, half-resolution mid ring extends terrain-only coverage to roughly 720 m per axis; two tiny radial meshes continue sampled highlands and irregular horizon ridges from 700 m to 2.3 km. Mid/far layers have no collision, grass, props, lamps, or traces.
+- The camera far clip is 3 km. Slightly lighter dimension-specific fog and muted dimension-tinted far materials create atmospheric depth instead of a hard terrain cutoff; cheap giant-landmark proxies now reach across an 11-chunk radius.
+- Waking, Memory, and Dust far hills now use only darker multiplicative shades of the terrain's dusty-green midpoint; no white or neutral-grey tint is introduced. Dimension lighting and fog provide the distance treatment, while the established Dead and Liminal profiles remain unchanged.
+- Regular trees now require a flatter center normal plus four-point base-footing validation and receive a subtle 0.2 m visual embed. Wide passive trace foundations use a similar multi-point check; lamp posts retain their existing open-ground slope filter.
 - A minority of dream-signal routes softly prefer launch-friendly terrain along their approach; normal traversal remains the default.
 - Destination placement now checks both local and broader slope variation, makes additional terrain-aware attempts, and searches nearby safe ground before accepting a direct fallback.
 - Seeded procedural rolling terrain generated in streamed chunks around the player.
-- Stable active chunk radius with distant chunk removal.
+- Stable near/mid LOD radii with distant chunk removal, automatic detail-ring promotion, and chunk-snapped far-world recentering.
 - Deterministic wind-bent highland trees, embedded weathered rocks, and restrained surreal landmarks share one desaturated material language.
 - Seeded prop rotation, color, clustering, and small-to-rare-giant scale variation.
 - Rare revelation regions place solitary giant trees, pale stone pillars, tilted monoliths, or standing horizon rings on open ridge-like terrain.
@@ -68,7 +73,7 @@ Dream signal placement is flow-first but no longer linear: a persistent journey 
 - `Q` shifts through Waking / Pale World, Dead / Empty World, Memory / Golden World, Liminal Night / Dream-Between, and Forgotten Road / Dust World.
 - Dimension changes use a brief 0.7-second color veil and quiet procedural tone while the existing atmosphere continues its smooth interpolation; player control is never blocked.
 - Readability tuning settles atmosphere changes over 6 seconds and protects signal, trace, and landmark contrast in the darker dimensions without increasing visual density.
-- Debug information includes FPS, movement state, speed, vertical velocity, glide state, mouse status, current chunk, active chunks, active props, giant forms, far silhouettes, dream motes, current dimension, destination distance, composition type, and placement mode. Audio dimension targets update only when the active layer changes rather than being rediscovered every frame.
+- Debug information includes FPS, movement state, speed, vertical velocity, glide state, mouse status, current chunk, visible/detailed chunk counts, active props, giant forms, far silhouettes, dream motes, current dimension, destination distance, composition type, and placement mode. Audio dimension targets update only when the active layer changes rather than being rediscovered every frame.
 
 ## Current browser/export status
 
