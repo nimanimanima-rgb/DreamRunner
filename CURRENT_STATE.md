@@ -28,6 +28,7 @@ Dream signal placement is flow-first but no longer linear: a persistent journey 
 
 - The first Dream Highlands biome identity now unifies dusty olive grass, exposed earth, pale stone, cool fog valleys, wind-shaped vegetation, weathered human traces, restrained landmarks, and the pale dream signal.
 - Terrain uses browser-safe vertex color to blend muted grass, earth, stone, and cooler lowland tones without textures or custom shaders; the old alternating chunk-color look is gone.
+- Each streamed chunk carries one slope-filtered `MultiMesh` of 48 wind-leaning grass clumps, adding ground-scale richness without physics or per-blade nodes.
 - Broader rolling noise and sparse world-space ridge fields form windswept slopes, shelves, hill lips, and valley edges while keeping chunk meshes, collision, and glide-friendly flow seamless.
 - A minority of dream-signal routes softly prefer launch-friendly terrain along their approach; normal traversal remains the default.
 - Seeded procedural rolling terrain generated in streamed chunks around the player.
@@ -40,11 +41,12 @@ Dream signal placement is flow-first but no longer linear: a persistent journey 
 - Giant trees now use asymmetric windswept crowns; pillars and monoliths have quieter broken silhouettes; horizon rings retain their distant double-ring echo. All far proxies reuse cached dimension palettes: subdued in Waking, warm in Memory, weathered in Dust, drained in Dead/Empty, and cool-emissive in Liminal Night.
 - Spawn clearance and spacing rules preserve open running lanes near the starting area.
 - Centralized gentle canopy sway and landmark pulsing.
-- Lightweight dream atmosphere with 48 drifting/recycled motes rendered in one `MultiMesh`.
+- Lightweight dream atmosphere uses 64 varied drifting/recycled motes in one `MultiMesh` plus ten slow, player-following cloud forms in a second `MultiMesh`; neither system uses real lights or volumetrics.
 - Five prototype dimension layers smoothly control sky, fog, ambient light, directional light, and mote color/intensity.
 - Dimension palettes preserve the existing dawn, overcast, golden, night, and dust-haze visual recipes while reframing them as layers of one reality.
 - Very rare primitive human traces now use clearer travel-worn silhouettes: platform shelters with benches and route signs, dead utility poles with broken line hardware and markers, and stripped roadside frames with partial walls. Dimension changes apply cached visibility and material profiles: ordinary in Waking, warm shelters in Memory, dusty poles in Forgotten Road, cold ruins in Dead/Empty, and faint silhouettes in Liminal Night. They remain non-colliding to preserve high-speed flow.
 - Passive traces use their rare 5% per-chunk chance for normal play; an exported multiplier remains available for focused testing.
+- Reusable non-colliding roadside lamp posts appear rhythmically in roughly 28% of chunks. Emissive bulbs and faint ground-pool meshes provide warm presence without dynamic lights; dimension profiles range from drained Dead lamps to warm Memory and sacred Liminal lamps.
 - One active primitive-based dream signal with terrain-aware placement, slope checks, glow, pulse, orb, rings, and a long-distance beam.
 - The first signal uses a restrained onboarding profile: 380–460 m away, close to the opening view, launch-route favored, and slightly clearer until reached. Later destinations retain the full varied journey rules.
 - The dream signal responds to dimensions with restrained color, opacity, glow, pulse, and procedural resonance profiles while preserving long-distance readability.

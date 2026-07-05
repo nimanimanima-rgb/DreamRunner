@@ -1,0 +1,75 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://scripts/lamp_post.gd" id="1_lamp"]
+
+[sub_resource type="StandardMaterial3D" id="MetalMaterial"]
+albedo_color = Color(0.19, 0.2, 0.19, 1)
+roughness = 0.92
+
+[sub_resource type="StandardMaterial3D" id="BulbMaterial"]
+shading_mode = 0
+albedo_color = Color(1, 0.56, 0.18, 1)
+emission_enabled = true
+emission = Color(1, 0.56, 0.18, 1)
+emission_energy_multiplier = 0.55
+
+[sub_resource type="StandardMaterial3D" id="PoolMaterial"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(1, 0.56, 0.18, 0.055)
+emission_enabled = true
+emission = Color(1, 0.56, 0.18, 1)
+emission_energy_multiplier = 0.1
+
+[sub_resource type="CylinderMesh" id="PoleMesh"]
+top_radius = 0.12
+bottom_radius = 0.18
+height = 7.0
+radial_segments = 6
+
+[sub_resource type="BoxMesh" id="ArmMesh"]
+size = Vector3(1.8, 0.16, 0.16)
+
+[sub_resource type="BoxMesh" id="HoodMesh"]
+size = Vector3(0.65, 0.16, 0.55)
+
+[sub_resource type="SphereMesh" id="BulbMesh"]
+radius = 0.22
+height = 0.32
+radial_segments = 8
+rings = 4
+
+[sub_resource type="CylinderMesh" id="PoolMesh"]
+top_radius = 3.8
+bottom_radius = 3.8
+height = 0.035
+radial_segments = 20
+
+[node name="LampPost" type="Node3D"]
+script = ExtResource("1_lamp")
+
+[node name="Pole" type="MeshInstance3D" parent="."]
+position = Vector3(0, 3.5, 0)
+mesh = SubResource("PoleMesh")
+material_override = SubResource("MetalMaterial")
+
+[node name="Arm" type="MeshInstance3D" parent="."]
+position = Vector3(0.78, 6.72, 0)
+rotation = Vector3(0, 0, -0.08)
+mesh = SubResource("ArmMesh")
+material_override = SubResource("MetalMaterial")
+
+[node name="LampHood" type="MeshInstance3D" parent="."]
+position = Vector3(1.6, 6.56, 0)
+mesh = SubResource("HoodMesh")
+material_override = SubResource("MetalMaterial")
+
+[node name="LampBulb" type="MeshInstance3D" parent="."]
+position = Vector3(1.6, 6.38, 0)
+mesh = SubResource("BulbMesh")
+material_override = SubResource("BulbMaterial")
+
+[node name="LightPool" type="MeshInstance3D" parent="."]
+position = Vector3(1.6, 0.06, 0)
+mesh = SubResource("PoolMesh")
+material_override = SubResource("PoolMaterial")

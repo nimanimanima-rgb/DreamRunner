@@ -23,11 +23,17 @@ class DimensionLayer:
 @export var player_path: NodePath
 @export var world_environment_path: NodePath
 @export var directional_light_path: NodePath
-@export_range(8, 128, 1) var particle_count: int = 48
-@export_range(8.0, 80.0, 1.0) var spawn_radius: float = 34.0
+@export_range(8, 128, 1) var particle_count: int = 64
+@export_range(8.0, 80.0, 1.0) var spawn_radius: float = 42.0
 @export_range(0.05, 2.0, 0.05) var drift_speed: float = 0.35
 @export_range(2.0, 30.0, 1.0) var vertical_range: float = 14.0
 @export_range(1.0, 30.0, 0.5) var dimension_transition_seconds: float = 6.0
+@export_group("Cloud Bands")
+@export_range(4, 16, 1) var cloud_count: int = 10
+@export_range(120.0, 420.0, 10.0) var cloud_radius: float = 270.0
+@export_range(60.0, 180.0, 5.0) var cloud_height_min: float = 95.0
+@export_range(80.0, 240.0, 5.0) var cloud_height_max: float = 145.0
+@export_range(0.1, 3.0, 0.1) var cloud_drift_speed: float = 0.65
 
 @onready var player: CharacterBody3D = get_node(player_path)
 @onready var world_environment_node: WorldEnvironment = get_node(world_environment_path)
@@ -37,12 +43,18 @@ var random := RandomNumberGenerator.new()
 var mote_positions: Array[Vector3] = []
 var mote_directions: Array[Vector3] = []
 var mote_phases: PackedFloat32Array = []
+var mote_sizes: PackedFloat32Array = []
+var cloud_positions: Array[Vector3] = []
+var cloud_directions: Array[Vector3] = []
 var previous_player_position := Vector3.ZERO
 var dimension_layers: Array[DimensionLayer] = []
 var current_dimension_index: int = 0
 var world_environment: Environment
 var sky_material: ProceduralSkyMaterial
 var mote_material: StandardMaterial3D
+var cloud_layer: MultiMeshInstance3D
+var cloud_material: StandardMaterial3D
+var cloud_profiles: Dictionary = {}
 
 
 func _ready() -> void:
@@ -51,6 +63,7 @@ func _ready() -> void:
 	sky_material = world_environment.sky.sky_material as ProceduralSkyMaterial
 	create_dimension_layers()
 	create_mote_multimesh()
+	create_cloud_multimesh()
 	apply_dimension_immediately(dimension_layers[current_dimension_index])
 	previous_player_position = player.global_position
 	global_position = previous_player_position
@@ -59,7 +72,12 @@ func _ready() -> void:
 		mote_positions.append(random_mote_position())
 		mote_directions.append(random_drift_direction())
 		mote_phases.append(random.randf_range(0.0, TAU))
+		mote_sizes.append(random.randf_range(0.68, 1.45))
 		update_mote_transform(index)
+	for index in range(cloud_count):
+		cloud_positions.append(random_cloud_position(index))
+		cloud_directions.append(Vector3(1.0, 0.0, 0.22).normalized())
+		update_cloud_transform(index)
 
 
 func _process(delta: float) -> void:
@@ -83,6 +101,14 @@ func _process(delta: float) -> void:
 
 		mote_positions[index] = mote_position
 		update_mote_transform(index)
+
+	for index in range(cloud_count):
+		var cloud_position := cloud_positions[index]
+		cloud_position += cloud_directions[index] * cloud_drift_speed * delta
+		if Vector2(cloud_position.x, cloud_position.z).length() > cloud_radius * 1.15:
+			cloud_position = random_cloud_position(index, true)
+		cloud_positions[index] = cloud_position
+		update_cloud_transform(index)
 
 
 func create_mote_multimesh() -> void:
@@ -119,6 +145,45 @@ func create_mote_multimesh() -> void:
 		mote_multimesh.set_instance_color(index, tint)
 
 
+func create_cloud_multimesh() -> void:
+	cloud_material = StandardMaterial3D.new()
+	cloud_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	cloud_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	cloud_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	cloud_material.albedo_color = Color(0.68, 0.7, 0.68, 0.16)
+
+	var cloud_mesh := SphereMesh.new()
+	cloud_mesh.radius = 18.0
+	cloud_mesh.height = 7.0
+	cloud_mesh.radial_segments = 12
+	cloud_mesh.rings = 4
+	cloud_mesh.material = cloud_material
+
+	var cloud_multimesh := MultiMesh.new()
+	cloud_multimesh.transform_format = MultiMesh.TRANSFORM_3D
+	cloud_multimesh.use_colors = true
+	cloud_multimesh.mesh = cloud_mesh
+	cloud_multimesh.instance_count = cloud_count
+	cloud_layer = MultiMeshInstance3D.new()
+	cloud_layer.name = "HighlandCloudBands"
+	cloud_layer.multimesh = cloud_multimesh
+	cloud_layer.custom_aabb = AABB(
+		Vector3(-cloud_radius * 1.4, cloud_height_min - 30.0, -cloud_radius * 1.4),
+		Vector3(cloud_radius * 2.8, cloud_height_max - cloud_height_min + 60.0, cloud_radius * 2.8)
+	)
+	add_child(cloud_layer)
+	cloud_profiles = {
+		&"pale_dawn": Color(0.68, 0.7, 0.68, 0.16),
+		&"cold_overcast": Color(0.42, 0.46, 0.48, 0.22),
+		&"golden_dissolve": Color(0.72, 0.62, 0.48, 0.14),
+		&"blue_liminal_night": Color(0.16, 0.2, 0.3, 0.17),
+		&"dust_haze_afternoon": Color(0.62, 0.57, 0.5, 0.2),
+	}
+	for index in range(cloud_count):
+		var shade: float = random.randf_range(0.82, 1.0)
+		cloud_multimesh.set_instance_color(index, Color(shade, shade, shade, 1.0))
+
+
 func random_mote_position() -> Vector3:
 	var angle := random.randf_range(0.0, TAU)
 	var distance := sqrt(random.randf()) * spawn_radius
@@ -134,6 +199,19 @@ func random_drift_direction() -> Vector3:
 	return Vector3(cos(angle), random.randf_range(-0.12, 0.18), sin(angle)).normalized()
 
 
+func random_cloud_position(index: int, enter_from_upwind: bool = false) -> Vector3:
+	var angle: float = random.randf_range(-PI, PI)
+	var distance: float = random.randf_range(cloud_radius * 0.38, cloud_radius)
+	var x_position: float = cos(angle) * distance
+	if enter_from_upwind:
+		x_position = -cloud_radius
+	return Vector3(
+		x_position,
+		random.randf_range(cloud_height_min, cloud_height_max),
+		sin(angle) * distance + float(index % 3) * 18.0
+	)
+
+
 func should_recycle(mote_position: Vector3) -> bool:
 	return (
 		Vector2(mote_position.x, mote_position.z).length_squared() > spawn_radius * spawn_radius
@@ -146,7 +224,24 @@ func update_mote_transform(index: int) -> void:
 	var pulse := 0.75 + sin(mote_phases[index] * 1.7) * 0.2
 	multimesh.set_instance_transform(
 		index,
-		Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * pulse), mote_positions[index])
+		Transform3D(
+			Basis.IDENTITY.scaled(Vector3.ONE * pulse * mote_sizes[index]),
+			mote_positions[index]
+		)
+	)
+
+
+func update_cloud_transform(index: int) -> void:
+	var horizontal_scale: float = 1.0 + float(index % 4) * 0.24
+	var depth_scale: float = 0.72 + float(index % 3) * 0.17
+	cloud_layer.multimesh.set_instance_transform(
+		index,
+		Transform3D(
+			Basis(Vector3.UP, float(index) * 1.37).scaled(
+				Vector3(horizontal_scale, 1.0, depth_scale)
+			),
+			cloud_positions[index]
+		)
 	)
 
 
@@ -264,6 +359,7 @@ func apply_dimension_immediately(layer: DimensionLayer) -> void:
 	mote_material.albedo_color = layer.mote_color
 	mote_material.emission = layer.mote_color
 	mote_material.emission_energy_multiplier = layer.mote_energy
+	cloud_material.albedo_color = cloud_profiles.get(layer.id, cloud_profiles[&"pale_dawn"])
 
 
 func update_dimension_transition(delta: float) -> void:
@@ -302,6 +398,10 @@ func update_dimension_transition(delta: float) -> void:
 	mote_material.emission_energy_multiplier = lerpf(
 		mote_material.emission_energy_multiplier, target.mote_energy, weight
 	)
+	var target_cloud_color: Color = cloud_profiles.get(
+		target.id, cloud_profiles[&"pale_dawn"]
+	)
+	cloud_material.albedo_color = cloud_material.albedo_color.lerp(target_cloud_color, weight)
 
 
 func get_current_dimension_id() -> StringName:

@@ -1,5 +1,7 @@
 extends Node3D
 
+const LAMP_POST_SCENE: PackedScene = preload("res://scenes/props/LampPost.tscn")
+
 @export_group("Chunk Streaming")
 @export var player_path: NodePath
 @export var chunk_size: float = 160.0
@@ -26,6 +28,16 @@ extends Node3D
 @export var prop_border_margin: float = 14.0
 @export var minimum_prop_spacing: float = 12.0
 @export var spawn_clear_radius: float = 55.0
+
+@export_group("Highland Grass")
+@export_range(0, 96, 4) var grass_clumps_per_chunk: int = 48
+@export_range(0.8, 3.0, 0.1) var grass_height: float = 1.45
+@export_range(0.8, 1.0, 0.01) var grass_minimum_normal_y: float = 0.94
+
+@export_group("Roadside Lamp Posts")
+@export_range(0.0, 0.6, 0.02) var lamp_post_chunk_chance: float = 0.28
+@export_range(20.0, 80.0, 2.0) var lamp_post_spacing: float = 42.0
+@export_range(0.8, 1.0, 0.01) var lamp_post_minimum_normal_y: float = 0.95
 
 @export_group("Passive Story Traces")
 @export var atmosphere_path: NodePath
@@ -118,6 +130,8 @@ var giant_inner_ring_mesh: TorusMesh
 var trace_box_mesh: BoxMesh
 var trace_pole_mesh: CylinderMesh
 var trace_light_mesh: SphereMesh
+var grass_clump_mesh: ArrayMesh
+var grass_material: StandardMaterial3D
 var trunk_shape: CylinderShape3D
 var rock_shape: BoxShape3D
 var landmark_shape: BoxShape3D
@@ -132,6 +146,7 @@ var active_giant_landmark_count: int = 0
 var animated_foliage: Array[Dictionary] = []
 var animated_landmarks: Array[Dictionary] = []
 var story_traces: Array[Node3D] = []
+var lamp_posts: Array[Node3D] = []
 var dimension_landmarks: Array[Dictionary] = []
 var current_dimension_id: StringName = &"pale_dawn"
 var animation_time: float = 0.0
@@ -289,6 +304,11 @@ func create_shared_resources() -> void:
 	trace_light_mesh.radial_segments = 8
 	trace_light_mesh.rings = 4
 
+	grass_material = create_grass_material(Color.WHITE)
+	grass_material.vertex_color_use_as_albedo = true
+	grass_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	grass_clump_mesh = create_grass_clump_mesh()
+
 	trunk_shape = CylinderShape3D.new()
 	trunk_shape.radius = 0.4
 	trunk_shape.height = 3.2
@@ -335,6 +355,94 @@ func create_trace_material(
 	material.emission = emission
 	material.emission_energy_multiplier = emission_energy
 	return material
+
+
+func create_grass_clump_mesh() -> ArrayMesh:
+	# Two crossed, wind-leaning blades form one readable clump. MultiMesh turns
+	# hundreds of these into one draw per terrain chunk.
+	var vertices := PackedVector3Array([
+		Vector3(-0.14, 0.0, 0.0), Vector3(0.14, 0.0, 0.0),
+		Vector3(0.08, 1.0, 0.03), Vector3(-0.02, 1.0, 0.03),
+		Vector3(0.0, 0.0, -0.14), Vector3(0.0, 0.0, 0.14),
+		Vector3(0.03, 1.0, 0.08), Vector3(0.03, 1.0, -0.02),
+	])
+	var normals := PackedVector3Array()
+	var colors := PackedColorArray()
+	for vertex_index in range(vertices.size()):
+		normals.append(Vector3.FORWARD if vertex_index < 4 else Vector3.RIGHT)
+		colors.append(Color.WHITE)
+	var indices := PackedInt32Array([
+		0, 2, 1, 0, 3, 2,
+		4, 6, 5, 4, 7, 6,
+	])
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_NORMAL] = normals
+	arrays[Mesh.ARRAY_COLOR] = colors
+	arrays[Mesh.ARRAY_INDEX] = indices
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	mesh.surface_set_material(0, grass_material)
+	return mesh
+
+
+func create_chunk_grass(chunk: StaticBody3D, coordinate: Vector2i) -> void:
+	if grass_clumps_per_chunk <= 0:
+		return
+	var grass_random := RandomNumberGenerator.new()
+	grass_random.seed = get_chunk_prop_seed(coordinate) ^ 0x47A55
+	var grass_multimesh := MultiMesh.new()
+	grass_multimesh.transform_format = MultiMesh.TRANSFORM_3D
+	grass_multimesh.use_colors = true
+	grass_multimesh.mesh = grass_clump_mesh
+	grass_multimesh.instance_count = grass_clumps_per_chunk
+	var half_size: float = chunk_size * 0.5 - 5.0
+	var placed_count: int = 0
+	for _attempt in range(grass_clumps_per_chunk * 3):
+		if placed_count >= grass_clumps_per_chunk:
+			break
+		var local_x: float = grass_random.randf_range(-half_size, half_size)
+		var local_z: float = grass_random.randf_range(-half_size, half_size)
+		var world_x: float = coordinate.x * chunk_size + local_x
+		var world_z: float = coordinate.y * chunk_size + local_z
+		var surface_normal := sample_surface_normal(world_x, world_z)
+		if surface_normal.y < grass_minimum_normal_y:
+			continue
+		var local_y: float = sample_height(world_x, world_z) + 0.03
+		var height_scale: float = grass_height * grass_random.randf_range(0.72, 1.28)
+		var width_scale: float = grass_random.randf_range(0.78, 1.25)
+		var basis := Basis(Vector3.UP, grass_random.randf_range(-PI, PI)).scaled(
+			Vector3(width_scale, height_scale, width_scale)
+		)
+		grass_multimesh.set_instance_transform(
+			placed_count,
+			Transform3D(basis, Vector3(local_x, local_y, local_z))
+		)
+		var color_variation: float = grass_random.randf_range(0.0, 1.0)
+		grass_multimesh.set_instance_color(
+			placed_count,
+			Color(0.27, 0.32, 0.22).lerp(Color(0.39, 0.38, 0.25), color_variation)
+		)
+		placed_count += 1
+	grass_multimesh.visible_instance_count = placed_count
+	var grass_instance := MultiMeshInstance3D.new()
+	grass_instance.name = "HighlandGrass"
+	grass_instance.multimesh = grass_multimesh
+	grass_instance.custom_aabb = AABB(
+		Vector3(-chunk_size * 0.5, -20.0, -chunk_size * 0.5),
+		Vector3(chunk_size, 60.0, chunk_size)
+	)
+	chunk.add_child(grass_instance)
+
+
+func sample_surface_normal(world_x: float, world_z: float) -> Vector3:
+	var offset: float = 2.0
+	return Vector3(
+		sample_height(world_x - offset, world_z) - sample_height(world_x + offset, world_z),
+		offset * 2.0,
+		sample_height(world_x, world_z - offset) - sample_height(world_x, world_z + offset)
+	).normalized()
 
 
 func create_landmark_dimension_materials() -> void:
@@ -473,6 +581,7 @@ func create_chunk(coordinate: Vector2i) -> void:
 	collision.name = "Collision"
 	collision.shape = terrain_mesh.create_trimesh_shape()
 	chunk.add_child(collision)
+	create_chunk_grass(chunk, coordinate)
 
 	var generated_counts: Vector2i = create_chunk_props(chunk, coordinate)
 	var prop_count: int = generated_counts.x
@@ -563,6 +672,19 @@ func create_chunk_props(chunk: StaticBody3D, coordinate: Vector2i) -> Vector2i:
 			placed_positions.append(Vector2(trace_position.x, trace_position.z))
 			prop_count += 1
 
+	if random.randf() < lamp_post_chunk_chance:
+		var lamp_position := get_random_prop_position(random, coordinate, placed_positions)
+		var lamp_world_x: float = coordinate.x * chunk_size + lamp_position.x
+		var lamp_world_z: float = coordinate.y * chunk_size + lamp_position.z
+		if (
+			is_spawn_area_clear(coordinate, lamp_position)
+			and is_prop_spacing_clear(lamp_position, placed_positions, lamp_post_spacing)
+			and sample_surface_normal(lamp_world_x, lamp_world_z).y >= lamp_post_minimum_normal_y
+		):
+			create_lamp_post(chunk, lamp_position, random)
+			placed_positions.append(Vector2(lamp_position.x, lamp_position.z))
+			prop_count += 1
+
 	if is_giant_landmark_chunk(coordinate):
 		var force_placement: bool = is_guaranteed_ring_chunk(coordinate)
 		var giant_random: RandomNumberGenerator = create_giant_instance_random(coordinate)
@@ -610,6 +732,20 @@ func create_story_trace(
 	chunk.add_child(trace)
 	story_traces.append(trace)
 	update_story_trace_visibility(trace)
+
+
+func create_lamp_post(
+	chunk: StaticBody3D,
+	base_position: Vector3,
+	random: RandomNumberGenerator
+) -> void:
+	var lamp := LAMP_POST_SCENE.instantiate() as Node3D
+	lamp.name = "RoadsideLamp"
+	lamp.position = base_position
+	lamp.rotation.y = random.randf_range(-PI, PI)
+	lamp.set_meta("dimension_id", current_dimension_id)
+	chunk.add_child(lamp)
+	lamp_posts.append(lamp)
 
 
 func build_roadside_shelter(trace: Node3D) -> void:
@@ -694,6 +830,10 @@ func _on_dimension_changed(dimension_id: StringName, _display_name: String) -> v
 	for trace in story_traces:
 		if is_instance_valid(trace):
 			update_story_trace_visibility(trace)
+	for lamp in lamp_posts:
+		if is_instance_valid(lamp):
+			lamp.set_meta("dimension_id", dimension_id)
+			lamp.call("apply_dimension_profile", dimension_id)
 	update_dimension_landmarks()
 
 
@@ -1659,6 +1799,7 @@ func remove_chunk(coordinate: Vector2i) -> void:
 	var chunk: StaticBody3D = active_chunks[coordinate]
 	remove_chunk_animation_entries(chunk)
 	remove_chunk_story_traces(chunk)
+	remove_chunk_lamp_posts(chunk)
 	remove_dimension_landmarks_under(chunk)
 	active_prop_count -= chunk_prop_counts.get(coordinate, 0)
 	active_giant_landmark_count -= chunk_giant_counts.get(coordinate, 0)
@@ -1673,6 +1814,13 @@ func remove_chunk_story_traces(chunk: StaticBody3D) -> void:
 		var trace := story_traces[index]
 		if not is_instance_valid(trace) or chunk.is_ancestor_of(trace):
 			story_traces.remove_at(index)
+
+
+func remove_chunk_lamp_posts(chunk: StaticBody3D) -> void:
+	for index in range(lamp_posts.size() - 1, -1, -1):
+		var lamp := lamp_posts[index]
+		if not is_instance_valid(lamp) or chunk.is_ancestor_of(lamp):
+			lamp_posts.remove_at(index)
 
 
 func remove_chunk_animation_entries(chunk: StaticBody3D) -> void:
