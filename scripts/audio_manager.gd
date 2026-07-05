@@ -3,8 +3,9 @@ extends Node
 @export var player_path: NodePath
 @export var atmosphere_path: NodePath
 @export var destination_manager_path: NodePath
+@export_range(0.0, 6.0, 0.5) var overall_gain_db: float = 3.0
 @export_range(-45.0, -8.0, 1.0) var ambience_volume_db: float = -27.0
-@export_range(-40.0, -6.0, 1.0) var signal_volume_db: float = -18.0
+@export_range(-40.0, -6.0, 1.0) var signal_volume_db: float = -17.0
 @export_range(0.0, 0.5, 0.01) var movement_wind_boost: float = 0.18
 
 @onready var player: CharacterBody3D = get_node(player_path)
@@ -31,6 +32,7 @@ var current_wind_level: float = 0.7
 var current_drone_level: float = 0.08
 var current_drone_frequency: float = 58.0
 var current_signal_frequency: float = 176.0
+var current_air_body: float = 0.1
 var dimension_cue_samples_remaining: int = 0
 var dimension_cue_phase: float = 0.0
 
@@ -48,12 +50,12 @@ func create_generator_streams() -> void:
 	ambience_stream.mix_rate = MIX_RATE
 	ambience_stream.buffer_length = 0.35
 	ambience_player.stream = ambience_stream
-	ambience_player.volume_db = ambience_volume_db
+	ambience_player.volume_db = ambience_volume_db + overall_gain_db
 	var signal_stream := AudioStreamGenerator.new()
 	signal_stream.mix_rate = MIX_RATE
 	signal_stream.buffer_length = 0.25
 	signal_player.stream = signal_stream
-	signal_player.volume_db = signal_volume_db
+	signal_player.volume_db = signal_volume_db + overall_gain_db
 
 
 func unlock_audio() -> void:
@@ -79,37 +81,44 @@ func update_dimension_color(delta: float) -> void:
 	var target_drone: float = 0.08
 	var target_frequency: float = 58.0
 	var target_signal_frequency: float = 176.0
+	var target_air_body: float = 0.1
 	match dimension_id:
 		&"pale_dawn":
-			target_wind = 0.62
-			target_drone = 0.045
-			target_frequency = 72.0
+			target_wind = 0.68
+			target_drone = 0.05
+			target_frequency = 70.0
 			target_signal_frequency = 176.0
+			target_air_body = 0.1
 		&"cold_overcast":
-			target_wind = 0.9
-			target_drone = 0.1
+			target_wind = 0.63
+			target_drone = 0.065
 			target_frequency = 46.0
 			target_signal_frequency = 132.0
+			target_air_body = 0.02
 		&"golden_dissolve":
-			target_wind = 0.52
-			target_drone = 0.13
-			target_frequency = 82.0
-			target_signal_frequency = 196.0
-		&"blue_liminal_night":
-			target_wind = 0.42
+			target_wind = 0.56
 			target_drone = 0.12
-			target_frequency = 39.0
+			target_frequency = 78.0
+			target_signal_frequency = 196.0
+			target_air_body = 0.22
+		&"blue_liminal_night":
+			target_wind = 0.46
+			target_drone = 0.14
+			target_frequency = 37.0
 			target_signal_frequency = 148.0
+			target_air_body = 0.18
 		&"dust_haze_afternoon":
-			target_wind = 0.78
-			target_drone = 0.035
+			target_wind = 0.86
+			target_drone = 0.025
 			target_frequency = 52.0
 			target_signal_frequency = 164.0
+			target_air_body = 0.0
 	var weight: float = 1.0 - exp(-delta * 0.45)
 	current_wind_level = lerpf(current_wind_level, target_wind, weight)
 	current_drone_level = lerpf(current_drone_level, target_drone, weight)
 	current_drone_frequency = lerpf(current_drone_frequency, target_frequency, weight)
 	current_signal_frequency = lerpf(current_signal_frequency, target_signal_frequency, weight)
+	current_air_body = lerpf(current_air_body, target_air_body, weight)
 
 
 func fill_ambience_buffer() -> void:
@@ -125,11 +134,12 @@ func fill_ambience_buffer() -> void:
 		fast_wind = lerpf(fast_wind, noise_sample, 0.075)
 		slow_wind = lerpf(slow_wind, noise_sample, 0.008)
 		var soft_air: float = (fast_wind - slow_wind) * wind_level
+		var air_body: float = slow_wind * current_air_body
 		drone_phase = fmod(drone_phase + TAU * current_drone_frequency / MIX_RATE, TAU)
 		var distant_tone: float = (sin(drone_phase) + sin(drone_phase * 0.503) * 0.28) * current_drone_level
 		var dimension_cue := get_dimension_transition_sample()
 		var sample: float = clampf(
-			soft_air * 0.42 + distant_tone + dimension_cue,
+			soft_air * 0.42 + air_body * 0.16 + distant_tone + dimension_cue,
 			-0.75,
 			0.75
 		)

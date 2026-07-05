@@ -52,6 +52,7 @@ Dream signal placement is flow-first but no longer linear: a persistent journey 
 ## Current UI/HUD systems
 
 - Procedural ambience begins after the browser-safe entry click, responds subtly to dimension and movement, and can be muted with `M`.
+- Sound Design Pass 02 raises the shared mix by `+3 dB` (about 41% linear gain), gives signal resonance one additional dB of clarity, and differentiates dimensions through smoothly blended wind, air pressure, drone weight, and pitch.
 
 - Start overlay: "Click to enter dream" plus movement controls.
 - Clicking captures the mouse and unlocks audio; `Esc` releases the mouse and pauses; clicking the overlay resumes and recaptures it.
