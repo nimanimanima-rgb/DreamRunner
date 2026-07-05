@@ -209,7 +209,7 @@ func find_destination_position() -> Vector3:
 	var preferred_position: Vector3 = find_best_forward_candidate(
 		forward,
 		deg_to_rad(preferred_forward_cone_degrees),
-		32
+		40
 	)
 	if preferred_position != Vector3.INF:
 		set_selected_path_debug(forward, preferred_position, false)
@@ -218,7 +218,7 @@ func find_destination_position() -> Vector3:
 	var fallback_position: Vector3 = find_best_forward_candidate(
 		forward,
 		deg_to_rad(fallback_forward_cone_degrees),
-		20
+		28
 	)
 	if fallback_position != Vector3.INF:
 		set_selected_path_debug(forward, fallback_position, true)
@@ -243,7 +243,35 @@ func find_destination_position() -> Vector3:
 			+ forward.rotated(Vector3.UP, deg_to_rad(45.0)) * direct_distance
 		)
 	direct_position.y = get_terrain_height(direct_position.x, direct_position.z)
-	return direct_position
+	return find_nearby_safe_destination(direct_position, forward)
+
+
+func find_nearby_safe_destination(origin: Vector3, forward: Vector3) -> Vector3:
+	if is_slope_suitable(origin) and bool(
+		terrain_manager.call("is_world_position_open", origin, 24.0)
+	):
+		return origin
+	var best_position := Vector3.INF
+	var best_score: float = -INF
+	for radius in [24.0, 42.0, 68.0]:
+		for angle_index in range(8):
+			var angle: float = TAU * float(angle_index) / 8.0
+			var candidate: Vector3 = origin + Vector3(cos(angle), 0.0, sin(angle)) * float(radius)
+			candidate.y = get_terrain_height(candidate.x, candidate.z)
+			if not is_slope_suitable(candidate):
+				continue
+			if not bool(terrain_manager.call("is_world_position_open", candidate, 24.0)):
+				continue
+			var candidate_direction: Vector3 = candidate - player.global_position
+			candidate_direction.y = 0.0
+			if candidate_direction.length_squared() < 0.001:
+				continue
+			var score: float = forward.dot(candidate_direction.normalized()) * 8.0
+			score -= get_local_height_variation(candidate, 10.0) * 1.5
+			if score > best_score:
+				best_score = score
+				best_position = candidate
+	return origin if best_position == Vector3.INF else best_position
 
 
 func find_best_forward_candidate(
@@ -491,23 +519,23 @@ func get_preferred_direction() -> Vector3:
 
 
 func is_slope_suitable(candidate: Vector3) -> bool:
-	var sample_offset: float = 5.0
-	var maximum_height_change: float = 3.5
 	var center_height: float = candidate.y
-	var sample_directions: Array[Vector2] = [
-		Vector2(sample_offset, 0.0),
-		Vector2(-sample_offset, 0.0),
-		Vector2(0.0, sample_offset),
-		Vector2(0.0, -sample_offset),
-	]
-
-	for offset in sample_directions:
-		var nearby_height: float = get_terrain_height(
-			candidate.x + offset.x,
-			candidate.z + offset.y
-		)
-		if absf(nearby_height - center_height) > maximum_height_change:
-			return false
+	for slope_check in [[5.0, 3.8], [11.0, 7.5]]:
+		var sample_offset: float = slope_check[0]
+		var maximum_height_change: float = slope_check[1]
+		var sample_directions: Array[Vector2] = [
+			Vector2(sample_offset, 0.0),
+			Vector2(-sample_offset, 0.0),
+			Vector2(0.0, sample_offset),
+			Vector2(0.0, -sample_offset),
+		]
+		for offset in sample_directions:
+			var nearby_height: float = get_terrain_height(
+				candidate.x + offset.x,
+				candidate.z + offset.y
+			)
+			if absf(nearby_height - center_height) > maximum_height_change:
+				return false
 	return true
 
 

@@ -9,15 +9,21 @@ const LAMP_POST_SCENE: PackedScene = preload("res://scenes/props/LampPost.tscn")
 @export_range(1, 4, 1) var active_radius: int = 2
 
 @export_group("Rolling Hills")
-@export var height_amplitude: float = 10.0
-@export var terrain_scale: float = 0.0032
+@export var height_amplitude: float = 18.0
+@export var terrain_scale: float = 0.0028
 @export var terrain_seed: int = 1337
 
+@export_group("Dramatic Highland Masses")
+@export_range(0.0, 30.0, 0.5) var highland_mass_amplitude: float = 14.0
+@export_range(0.0004, 0.003, 0.00005) var highland_mass_scale: float = 0.00105
+@export_range(1.0, 1.6, 0.05) var valley_depth_multiplier: float = 1.25
+
 @export_group("Natural Launch Terrain")
-@export_range(0.0, 12.0, 0.5) var launch_height_amplitude: float = 7.5
-@export_range(0.0005, 0.004, 0.0001) var launch_region_scale: float = 0.0011
-@export_range(0.001, 0.008, 0.0001) var launch_shape_scale: float = 0.0027
-@export_range(0.0, 0.8, 0.01) var launch_region_threshold: float = 0.36
+@export_range(0.0, 24.0, 0.5) var launch_height_amplitude: float = 20.0
+@export_range(0.0005, 0.004, 0.00005) var launch_region_scale: float = 0.00085
+@export_range(0.001, 0.008, 0.0001) var launch_shape_scale: float = 0.0019
+@export_range(0.0, 0.8, 0.01) var launch_region_threshold: float = 0.12
+@export_range(0.0, 1.0, 0.05) var ridge_lip_strength: float = 0.4
 
 @export_group("Nature Props")
 @export_range(0, 8, 1) var trees_per_chunk: int = 2
@@ -93,8 +99,10 @@ var far_landmark_proxies: Dictionary = {}
 var current_chunk := Vector2i.ZERO
 
 var terrain_noise: FastNoiseLite
+var highland_mass_noise: FastNoiseLite
 var biome_color_noise: FastNoiseLite
 var terrain_zero_offset: float = 0.0
+var highland_mass_zero_offset: float = 0.0
 var launch_region_noise: FastNoiseLite
 var launch_shape_noise: FastNoiseLite
 var launch_zero_offset: float = 0.0
@@ -182,6 +190,14 @@ func create_shared_resources() -> void:
 	terrain_noise.fractal_gain = 0.45
 	terrain_noise.fractal_lacunarity = 2.0
 	terrain_zero_offset = terrain_noise.get_noise_2d(0.0, 0.0) * height_amplitude
+	highland_mass_noise = FastNoiseLite.new()
+	highland_mass_noise.seed = terrain_seed + 113
+	highland_mass_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	highland_mass_noise.frequency = highland_mass_scale
+	highland_mass_noise.fractal_type = FastNoiseLite.FRACTAL_FBM
+	highland_mass_noise.fractal_octaves = 2
+	highland_mass_noise.fractal_gain = 0.42
+	highland_mass_zero_offset = get_highland_mass_height(0.0, 0.0)
 	biome_color_noise = FastNoiseLite.new()
 	biome_color_noise.seed = terrain_seed + 947
 	biome_color_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
@@ -506,7 +522,18 @@ func sample_height(world_x: float, world_z: float) -> float:
 		terrain_noise.get_noise_2d(world_x, world_z) * height_amplitude
 		- terrain_zero_offset
 	)
-	return rolling_height + get_launch_height(world_x, world_z) - launch_zero_offset
+	var highland_mass: float = (
+		get_highland_mass_height(world_x, world_z) - highland_mass_zero_offset
+	)
+	return rolling_height + highland_mass + get_launch_height(world_x, world_z) - launch_zero_offset
+
+
+func get_highland_mass_height(world_x: float, world_z: float) -> float:
+	var mass_value: float = highland_mass_noise.get_noise_2d(world_x, world_z)
+	var mass_height: float = mass_value * highland_mass_amplitude
+	if mass_height < 0.0:
+		mass_height *= valley_depth_multiplier
+	return mass_height
 
 
 func get_launch_height(world_x: float, world_z: float) -> float:
@@ -523,9 +550,14 @@ func get_launch_height(world_x: float, world_z: float) -> float:
 		return 0.0
 	var shape_value: float = launch_shape_noise.get_noise_2d(world_x, world_z)
 	var ridge: float = 1.0 - absf(shape_value)
-	var broad_rise: float = smoothstep(0.28, 0.92, ridge)
+	var broad_rise: float = smoothstep(0.24, 0.9, ridge)
+	var crest_band: float = (
+		smoothstep(0.55, 0.74, ridge)
+		* (1.0 - smoothstep(0.88, 0.98, ridge))
+	)
+	var shelf_shape: float = broad_rise + crest_band * ridge_lip_strength
 	var wind_lean: float = shape_value * 0.22 + 0.78
-	return broad_rise * wind_lean * region_mask * launch_height_amplitude
+	return shelf_shape * wind_lean * region_mask * launch_height_amplitude
 
 
 func get_launch_terrain_influence(world_position: Vector3) -> float:

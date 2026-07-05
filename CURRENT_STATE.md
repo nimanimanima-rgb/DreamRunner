@@ -29,8 +29,9 @@ Dream signal placement is flow-first but no longer linear: a persistent journey 
 - The first Dream Highlands biome identity now unifies dusty olive grass, exposed earth, pale stone, cool fog valleys, wind-shaped vegetation, weathered human traces, restrained landmarks, and the pale dream signal.
 - Terrain uses browser-safe vertex color to blend muted grass, earth, stone, and cooler lowland tones without textures or custom shaders; the old alternating chunk-color look is gone.
 - Each streamed chunk carries one slope-filtered `MultiMesh` of 48 wind-leaning grass clumps, adding ground-scale richness without physics or per-blade nodes.
-- Broader rolling noise and sparse world-space ridge fields form windswept slopes, shelves, hill lips, and valley edges while keeping chunk meshes, collision, and glide-friendly flow seamless.
+- Dramatic Highlands terrain combines 18 m rolling relief, a 14 m low-frequency signed highland-mass layer with deeper valleys, and 20 m smooth launch shelves. The resulting broad ridges, elevated plateaus, crest lips, and layered lowlands create substantially longer natural glides while keeping one seamless world-space height function for visuals and collision.
 - A minority of dream-signal routes softly prefer launch-friendly terrain along their approach; normal traversal remains the default.
+- Destination placement now checks both local and broader slope variation, makes additional terrain-aware attempts, and searches nearby safe ground before accepting a direct fallback.
 - Seeded procedural rolling terrain generated in streamed chunks around the player.
 - Stable active chunk radius with distant chunk removal.
 - Deterministic wind-bent highland trees, embedded weathered rocks, and restrained surreal landmarks share one desaturated material language.
