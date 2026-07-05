@@ -59,7 +59,7 @@ Dream signal placement is flow-first but no longer linear: a persistent journey 
 - Minimal normal-play hint: "Follow the dream signal".
 - Off-screen signal arrow and distance label, hidden when the signal is visible or the mouse is released.
 - Debug HUD toggled with `F3`; hidden by default for a cleaner presentation.
-- `F4` cycles Waking / Pale World, Dead / Empty World, Memory / Golden World, Liminal Night / Dream-Between, and Forgotten Road / Dust World for development testing.
+- `Q` shifts through Waking / Pale World, Dead / Empty World, Memory / Golden World, Liminal Night / Dream-Between, and Forgotten Road / Dust World.
 - Dimension changes use a brief 0.7-second color veil and quiet procedural tone while the existing atmosphere continues its smooth interpolation; player control is never blocked.
 - Debug information includes movement state, speed, vertical velocity, sprint/glide state, mouse status, current chunk, active chunks, active props, giant forms, far silhouettes, dream motes, current dimension, destination distance, composition type, and placement mode.
 
@@ -96,7 +96,7 @@ Dream signal placement is flow-first but no longer linear: a persistent journey 
 - Stable movement feel, sprint speed, high jump, glide, air control, and slope behavior.
 - Smooth camera follow, pitch limits, spring arm, FOV response, and jitter fixes.
 - Browser click-to-capture, `Esc` release, and click-to-recapture behavior.
-- `R` reset, start overlay, off-screen guidance, `F3` debug toggle, and `F4` dimension cycling.
+- `R` reset, start overlay, off-screen guidance, `F3` debug toggle, and `Q` dimension shifting.
 - Procedural terrain seams, collision orientation, deterministic generation, and chunk recycling.
 - Open sprint lanes and safe starting-area clearance.
 - Dream destination placement, triggering, regeneration, and guidance.

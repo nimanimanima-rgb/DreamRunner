@@ -153,7 +153,7 @@ func get_active_mote_count() -> int:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F4:
+	if event.is_action_pressed("shift_dimension"):
 		cycle_dimension()
 		get_viewport().set_input_as_handled()
 

@@ -482,7 +482,7 @@ The current mood states should be treated as prototypes for parallel dimensions 
 
 The terrain may remain physically similar while its meaning, atmosphere, objects, and emotional tone change. The world should feel like one place seen through multiple states of being.
 
-`F4` mood cycling is the current debug version of this idea. It proves atmospheric contrast; it is not the final dimension-shifting system.
+`Q` dimension shifting is the current prototype version of this idea. It proves layered contrast; it is not the final dimension-shifting system.
 
 ## Same World, Different Reality
 

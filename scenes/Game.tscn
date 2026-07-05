@@ -354,6 +354,6 @@ theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1
 theme_override_font_sizes/font_size = 16
 text = "WASD  move     Shift  sprint     Space  jump / glide
-R  reset     F3  debug     F4  dimension cycle     M  mute
+R  reset     F3  debug     Q  shift dimension     M  mute
 Esc  release mouse / pause"
 horizontal_alignment = 1
