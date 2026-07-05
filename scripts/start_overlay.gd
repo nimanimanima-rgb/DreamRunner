@@ -1,8 +1,10 @@
 extends CanvasLayer
 
 @export var player_path: NodePath
+@export var audio_manager_path: NodePath
 
 @onready var player: CharacterBody3D = get_node(player_path)
+@onready var audio_manager: Node = get_node(audio_manager_path)
 @onready var prompt: Label = $CenterContainer/Message/Prompt
 
 var has_entered_dream: bool = false
@@ -37,6 +39,9 @@ func _input(event: InputEvent) -> void:
 		and event.pressed
 	):
 		get_tree().paused = false
+		# Keep the browser audio start inside the original mouse gesture. Doing
+		# this before requesting pointer lock avoids relying on another app or click.
+		audio_manager.call("unlock_audio")
 		player.call("capture_mouse")
 		has_entered_dream = true
 		was_mouse_captured = true

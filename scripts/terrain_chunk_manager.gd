@@ -7,15 +7,15 @@ extends Node3D
 @export_range(1, 4, 1) var active_radius: int = 2
 
 @export_group("Rolling Hills")
-@export var height_amplitude: float = 8.0
-@export var terrain_scale: float = 0.004
+@export var height_amplitude: float = 10.0
+@export var terrain_scale: float = 0.0032
 @export var terrain_seed: int = 1337
 
 @export_group("Natural Launch Terrain")
-@export_range(0.0, 12.0, 0.5) var launch_height_amplitude: float = 6.5
-@export_range(0.0005, 0.004, 0.0001) var launch_region_scale: float = 0.0013
-@export_range(0.001, 0.008, 0.0001) var launch_shape_scale: float = 0.0032
-@export_range(0.0, 0.8, 0.01) var launch_region_threshold: float = 0.34
+@export_range(0.0, 12.0, 0.5) var launch_height_amplitude: float = 7.5
+@export_range(0.0005, 0.004, 0.0001) var launch_region_scale: float = 0.0011
+@export_range(0.001, 0.008, 0.0001) var launch_shape_scale: float = 0.0027
+@export_range(0.0, 0.8, 0.01) var launch_region_threshold: float = 0.36
 
 @export_group("Nature Props")
 @export_range(0, 8, 1) var trees_per_chunk: int = 2
@@ -61,12 +61,15 @@ extends Node3D
 @export_range(25.0, 80.0, 5.0) var max_monumental_boulder_height: float = 55.0
 
 @export_group("World Material Palette")
-@export var grass_color_a := Color(0.3, 0.39, 0.27)
-@export var grass_color_b := Color(0.27, 0.36, 0.25)
-@export var trunk_color := Color(0.3, 0.24, 0.19)
-@export var foliage_color := Color(0.29, 0.38, 0.28)
-@export var rock_color := Color(0.45, 0.43, 0.4)
-@export var landmark_color := Color(0.4, 0.43, 0.49)
+@export var grass_color_a := Color(0.255, 0.3, 0.235)
+@export var grass_color_b := Color(0.34, 0.35, 0.27)
+@export var exposed_earth_color := Color(0.39, 0.335, 0.26)
+@export var highland_stone_color := Color(0.49, 0.49, 0.46)
+@export var valley_tint := Color(0.22, 0.28, 0.285)
+@export var trunk_color := Color(0.255, 0.225, 0.19)
+@export var foliage_color := Color(0.255, 0.315, 0.255)
+@export var rock_color := Color(0.47, 0.465, 0.43)
+@export var landmark_color := Color(0.43, 0.455, 0.49)
 
 @onready var player: CharacterBody3D = get_node(player_path)
 @onready var atmosphere: Node = get_node_or_null(atmosphere_path)
@@ -76,12 +79,12 @@ var far_landmark_proxies: Dictionary = {}
 var current_chunk := Vector2i.ZERO
 
 var terrain_noise: FastNoiseLite
+var biome_color_noise: FastNoiseLite
 var terrain_zero_offset: float = 0.0
 var launch_region_noise: FastNoiseLite
 var launch_shape_noise: FastNoiseLite
 var launch_zero_offset: float = 0.0
 var material_a: StandardMaterial3D
-var material_b: StandardMaterial3D
 var trunk_material: StandardMaterial3D
 var foliage_material: StandardMaterial3D
 var rock_material: StandardMaterial3D
@@ -162,6 +165,10 @@ func create_shared_resources() -> void:
 	terrain_noise.fractal_gain = 0.45
 	terrain_noise.fractal_lacunarity = 2.0
 	terrain_zero_offset = terrain_noise.get_noise_2d(0.0, 0.0) * height_amplitude
+	biome_color_noise = FastNoiseLite.new()
+	biome_color_noise.seed = terrain_seed + 947
+	biome_color_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	biome_color_noise.frequency = 0.006
 
 	launch_region_noise = FastNoiseLite.new()
 	launch_region_noise.seed = terrain_seed + 271
@@ -178,20 +185,20 @@ func create_shared_resources() -> void:
 	launch_shape_noise.fractal_gain = 0.35
 	launch_zero_offset = get_launch_height(0.0, 0.0)
 
-	material_a = create_grass_material(grass_color_a)
-	material_b = create_grass_material(grass_color_b)
+	material_a = create_grass_material(Color.WHITE)
+	material_a.vertex_color_use_as_albedo = true
 	trunk_material = create_grass_material(trunk_color)
 	foliage_material = create_grass_material(foliage_color)
 	rock_material = create_grass_material(rock_color)
 	landmark_material = create_grass_material(landmark_color)
-	pale_stone_material = create_grass_material(Color(0.57, 0.55, 0.5))
-	dark_stone_material = create_grass_material(Color(0.28, 0.3, 0.31))
-	faded_ring_material = create_grass_material(Color(0.63, 0.62, 0.57))
+	pale_stone_material = create_grass_material(Color(0.56, 0.555, 0.515))
+	dark_stone_material = create_grass_material(Color(0.245, 0.27, 0.285))
+	faded_ring_material = create_grass_material(Color(0.59, 0.59, 0.555))
 	faded_ring_material.emission_enabled = true
 	faded_ring_material.emission = Color(0.34, 0.32, 0.26)
 	faded_ring_material.emission_energy_multiplier = 0.14
-	trace_material = create_grass_material(Color(0.31, 0.29, 0.25))
-	trace_dark_material = create_grass_material(Color(0.19, 0.19, 0.18))
+	trace_material = create_grass_material(Color(0.355, 0.325, 0.275))
+	trace_dark_material = create_grass_material(Color(0.205, 0.215, 0.205))
 	trace_light_material = create_landmark_material(Color(0.78, 0.58, 0.3))
 	trace_light_material.emission_energy_multiplier = 0.75
 	trace_memory_material = create_trace_material(Color(0.5, 0.39, 0.25), Color(0.34, 0.2, 0.08), 0.16)
@@ -202,13 +209,13 @@ func create_shared_resources() -> void:
 	create_landmark_dimension_materials()
 	foliage_materials = [
 		foliage_material,
-		create_grass_material(foliage_color.lightened(0.08)),
-		create_grass_material(foliage_color.darkened(0.07)),
+		create_grass_material(foliage_color.lerp(Color(0.39, 0.39, 0.29), 0.28)),
+		create_grass_material(foliage_color.lerp(valley_tint, 0.2)),
 	]
 	rock_materials = [
 		rock_material,
-		create_grass_material(rock_color.lightened(0.07)),
-		create_grass_material(rock_color.lerp(Color(0.42, 0.39, 0.48), 0.35)),
+		create_grass_material(rock_color.lerp(highland_stone_color, 0.55)),
+		create_grass_material(rock_color.lerp(Color(0.37, 0.39, 0.42), 0.38)),
 	]
 	landmark_materials = [
 		create_landmark_material(landmark_color),
@@ -223,14 +230,14 @@ func create_shared_resources() -> void:
 	trunk_mesh.radial_segments = 8
 
 	foliage_mesh = SphereMesh.new()
-	foliage_mesh.radius = 1.6
-	foliage_mesh.height = 3.2
+	foliage_mesh.radius = 1.55
+	foliage_mesh.height = 2.5
 	foliage_mesh.radial_segments = 10
 	foliage_mesh.rings = 5
 
 	rock_mesh = SphereMesh.new()
-	rock_mesh.radius = 1.1
-	rock_mesh.height = 1.4
+	rock_mesh.radius = 1.15
+	rock_mesh.height = 1.25
 	rock_mesh.radial_segments = 8
 	rock_mesh.rings = 4
 
@@ -333,19 +340,19 @@ func create_trace_material(
 func create_landmark_dimension_materials() -> void:
 	landmark_dimension_materials = {
 		&"pale_dawn": create_landmark_material_profile(
-			Color(0.3, 0.24, 0.19), Color(0.29, 0.38, 0.28),
-			Color(0.57, 0.55, 0.5), Color(0.28, 0.3, 0.31),
-			Color(0.63, 0.62, 0.57), Color(0.34, 0.32, 0.26), 0.14
+			Color(0.255, 0.225, 0.19), Color(0.255, 0.315, 0.255),
+			Color(0.56, 0.555, 0.515), Color(0.245, 0.27, 0.285),
+			Color(0.59, 0.59, 0.555), Color(0.31, 0.33, 0.34), 0.12
 		),
 		&"cold_overcast": create_landmark_material_profile(
-			Color(0.17, 0.18, 0.19), Color(0.18, 0.22, 0.23),
-			Color(0.38, 0.42, 0.45), Color(0.12, 0.15, 0.18),
-			Color(0.48, 0.56, 0.66), Color(0.24, 0.4, 0.62), 0.32
+			Color(0.155, 0.17, 0.18), Color(0.17, 0.205, 0.205),
+			Color(0.4, 0.43, 0.445), Color(0.115, 0.145, 0.17),
+			Color(0.43, 0.5, 0.58), Color(0.22, 0.34, 0.5), 0.28
 		),
 		&"golden_dissolve": create_landmark_material_profile(
-			Color(0.38, 0.28, 0.18), Color(0.42, 0.43, 0.25),
-			Color(0.65, 0.55, 0.4), Color(0.42, 0.34, 0.26),
-			Color(0.76, 0.58, 0.3), Color(0.72, 0.42, 0.16), 0.38
+			Color(0.345, 0.27, 0.185), Color(0.385, 0.39, 0.245),
+			Color(0.62, 0.545, 0.42), Color(0.39, 0.325, 0.26),
+			Color(0.7, 0.56, 0.34), Color(0.62, 0.4, 0.18), 0.34
 		),
 		&"blue_liminal_night": create_landmark_material_profile(
 			Color(0.08, 0.1, 0.14), Color(0.1, 0.17, 0.22),
@@ -353,9 +360,9 @@ func create_landmark_dimension_materials() -> void:
 			Color(0.42, 0.62, 0.92), Color(0.3, 0.52, 1.0), 0.75
 		),
 		&"dust_haze_afternoon": create_landmark_material_profile(
-			Color(0.29, 0.24, 0.18), Color(0.33, 0.31, 0.23),
-			Color(0.48, 0.42, 0.34), Color(0.23, 0.21, 0.18),
-			Color(0.58, 0.48, 0.36), Color(0.34, 0.25, 0.16), 0.18
+			Color(0.275, 0.235, 0.185), Color(0.315, 0.3, 0.23),
+			Color(0.5, 0.445, 0.36), Color(0.225, 0.21, 0.19),
+			Color(0.56, 0.48, 0.37), Color(0.31, 0.25, 0.18), 0.16
 		),
 	}
 
@@ -459,7 +466,7 @@ func create_chunk(coordinate: Vector2i) -> void:
 	var mesh_instance := MeshInstance3D.new()
 	mesh_instance.name = "Mesh"
 	mesh_instance.mesh = terrain_mesh
-	mesh_instance.material_override = material_a if (coordinate.x + coordinate.y) % 2 == 0 else material_b
+	mesh_instance.material_override = material_a
 	chunk.add_child(mesh_instance)
 
 	var collision := CollisionShape3D.new()
@@ -1091,39 +1098,40 @@ func create_solitary_giant_tree(
 	var trunk := MeshInstance3D.new()
 	trunk.name = "Trunk"
 	trunk.position.y = 31.0
+	trunk.rotation.z = 0.025
 	trunk.mesh = giant_trunk_mesh
 	trunk.material_override = trunk_material
 	giant_tree.add_child(trunk)
 
 	var main_canopy := create_giant_canopy(
 		"MainCanopy",
-		Vector3(0.0, 73.0, 0.0),
-		Vector3(1.0, 1.0, 1.0),
+		Vector3(5.0, 72.0, 0.0),
+		Vector3(1.18, 0.82, 0.92),
 		random
 	)
 	giant_tree.add_child(main_canopy)
 	giant_tree.add_child(create_giant_canopy(
 		"SideCanopyA",
-		Vector3(-11.0, 67.0, 4.0),
-		Vector3(0.72, 0.78, 0.72),
+		Vector3(-8.0, 65.0, 4.0),
+		Vector3(0.72, 0.62, 0.7),
 		random
 	))
 	giant_tree.add_child(create_giant_canopy(
 		"SideCanopyB",
-		Vector3(10.0, 69.0, -5.0),
-		Vector3(0.65, 0.72, 0.65),
+		Vector3(18.0, 67.0, -5.0),
+		Vector3(0.82, 0.58, 0.68),
 		random
 	))
 	giant_tree.add_child(create_giant_canopy(
 		"HighCrown",
-		Vector3(3.0, 82.0, -2.0),
-		Vector3(0.52, 0.64, 0.48),
+		Vector3(8.0, 82.0, -2.0),
+		Vector3(0.62, 0.58, 0.5),
 		random
 	))
 	giant_tree.add_child(create_giant_canopy(
 		"LowerCrown",
-		Vector3(-5.0, 58.0, 6.0),
-		Vector3(0.58, 0.42, 0.68),
+		Vector3(-3.0, 57.0, 6.0),
+		Vector3(0.62, 0.36, 0.66),
 		random
 	))
 	chunk.add_child(giant_tree)
@@ -1167,8 +1175,8 @@ func create_giant_canopy(
 	canopy.rotation.y = random.randf_range(-PI, PI)
 	canopy.rotation.z = random.randf_range(-0.08, 0.08)
 	canopy.scale = canopy_scale * Vector3(
-		random.randf_range(0.88, 1.14),
-		random.randf_range(0.9, 1.12),
+		random.randf_range(0.94, 1.18),
+		random.randf_range(0.82, 1.02),
 		random.randf_range(0.86, 1.16)
 	)
 	canopy.mesh = giant_canopy_mesh
@@ -1200,10 +1208,11 @@ func create_pale_stone_pillar(
 	pillar_crown.name = "WeatheredCrown"
 	pillar_crown.position = Vector3(
 		random.randf_range(-0.8, 0.8),
-		44.0,
+		54.0,
 		random.randf_range(-0.5, 0.5)
 	)
-	pillar_crown.scale = Vector3(1.16, 0.13, 0.92)
+	pillar_crown.rotation.z = random.randf_range(-0.08, 0.08)
+	pillar_crown.scale = Vector3(1.12, 0.075, 0.9)
 	pillar_crown.mesh = giant_pillar_mesh
 	pillar_crown.material_override = pale_stone_material
 	pillar.add_child(pillar_crown)
@@ -1246,11 +1255,11 @@ func create_tilted_monolith(
 	broken_crown.name = "BrokenCrown"
 	broken_crown.position = Vector3(
 		random.randf_range(-1.2, 1.2),
-		36.0,
+		39.0,
 		random.randf_range(-0.35, 0.35)
 	)
-	broken_crown.rotation.y = random.randf_range(-0.05, 0.05)
-	broken_crown.scale = Vector3(0.76, 0.18, 1.01)
+	broken_crown.rotation = Vector3(0.0, random.randf_range(-0.08, 0.08), random.randf_range(-0.1, 0.1))
+	broken_crown.scale = Vector3(0.78, 0.11, 1.02)
 	broken_crown.mesh = giant_monolith_mesh
 	broken_crown.material_override = rock_material
 	monolith.add_child(broken_crown)
@@ -1292,6 +1301,7 @@ func create_horizon_ring(
 	var inner_ring := MeshInstance3D.new()
 	inner_ring.name = "InnerEcho"
 	inner_ring.position.z = 0.35
+	inner_ring.rotation.z = 0.035
 	inner_ring.mesh = giant_inner_ring_mesh
 	inner_ring.material_override = faded_ring_material
 	ring.add_child(inner_ring)
@@ -1310,16 +1320,18 @@ func create_tree(
 	var tree := Node3D.new()
 	tree.name = "Tree_%d" % index
 	tree.position = base_position
-	tree.rotation.y = random.randf_range(-PI, PI)
+	# Shared lean gives the grove a prevailing-wind identity; small variation
+	# keeps individual trees from becoming stamped copies.
+	tree.rotation.y = random.randf_range(-0.2, 0.2)
 	tree.scale = Vector3.ONE * tree_scale
 
 	var trunk := MeshInstance3D.new()
 	trunk.name = "Trunk"
 	trunk.position = Vector3(0.0, 1.75, 0.0)
 	trunk.rotation = Vector3(
-		random.randf_range(-0.045, 0.045),
+		random.randf_range(-0.035, 0.035),
 		0.0,
-		random.randf_range(-0.055, 0.055)
+		random.randf_range(0.07, 0.14)
 	)
 	trunk.scale = Vector3(
 		random.randf_range(0.82, 1.18),
@@ -1333,15 +1345,15 @@ func create_tree(
 	var foliage := MeshInstance3D.new()
 	foliage.name = "Foliage"
 	foliage.position = Vector3(
-		random.randf_range(-0.22, 0.22),
-		random.randf_range(3.95, 4.3),
+		random.randf_range(0.35, 0.72),
+		random.randf_range(3.85, 4.15),
 		random.randf_range(-0.2, 0.2)
 	)
 	foliage.rotation.y = random.randf_range(-PI, PI)
 	foliage.scale = Vector3(
-		random.randf_range(0.82, 1.18),
-		random.randf_range(0.78, 1.08),
-		random.randf_range(0.84, 1.2)
+		random.randf_range(1.05, 1.35),
+		random.randf_range(0.68, 0.88),
+		random.randf_range(0.76, 1.02)
 	)
 	foliage.mesh = foliage_mesh
 	foliage.material_override = foliage_materials[random.randi_range(0, foliage_materials.size() - 1)]
@@ -1349,15 +1361,15 @@ func create_tree(
 	var side_foliage := MeshInstance3D.new()
 	side_foliage.name = "SideFoliage"
 	side_foliage.position = Vector3(
-		random.randf_range(-0.65, 0.65),
-		random.randf_range(3.55, 4.05),
+		random.randf_range(1.05, 1.48),
+		random.randf_range(3.35, 3.82),
 		random.randf_range(-0.5, 0.5)
 	)
 	side_foliage.rotation.y = random.randf_range(-PI, PI)
 	side_foliage.scale = Vector3(
-		random.randf_range(0.48, 0.7),
-		random.randf_range(0.42, 0.66),
-		random.randf_range(0.5, 0.74)
+		random.randf_range(0.62, 0.82),
+		random.randf_range(0.38, 0.56),
+		random.randf_range(0.48, 0.68)
 	)
 	side_foliage.mesh = foliage_mesh
 	side_foliage.material_override = foliage_materials[
@@ -1529,7 +1541,7 @@ func animate_world_life() -> void:
 	for entry in animated_landmarks:
 		var landmark: MeshInstance3D = entry["node"] as MeshInstance3D
 		var phase: float = float(entry["phase"])
-		var pulse: float = 1.0 + sin(animation_time * 0.55 + phase) * 0.035
+		var pulse: float = 1.0 + sin(animation_time * 0.55 + phase) * 0.012
 		var base_scale: Vector3 = entry["base_scale"]
 		landmark.scale = Vector3(base_scale.x * pulse, base_scale.y, base_scale.z * pulse)
 
@@ -1542,10 +1554,12 @@ func generate_chunk_mesh(coordinate: Vector2i) -> ArrayMesh:
 
 	var vertices := PackedVector3Array()
 	var normals := PackedVector3Array()
+	var colors := PackedColorArray()
 	var uvs := PackedVector2Array()
 	var indices := PackedInt32Array()
 	vertices.resize(vertex_count)
 	normals.resize(vertex_count)
+	colors.resize(vertex_count)
 	uvs.resize(vertex_count)
 	indices.resize(triangle_index_count)
 
@@ -1582,11 +1596,15 @@ func generate_chunk_mesh(coordinate: Vector2i) -> ArrayMesh:
 			var height_right := height_field[field_index + 1]
 			var height_back := height_field[field_index - height_field_size]
 			var height_forward := height_field[field_index + height_field_size]
-			normals[vertex_index] = Vector3(
+			var normal := Vector3(
 				height_left - height_right,
 				2.0 * grid_step,
 				height_back - height_forward
 			).normalized()
+			normals[vertex_index] = normal
+			var world_x := coordinate.x * chunk_size + local_x
+			var world_z := coordinate.y * chunk_size + local_z
+			colors[vertex_index] = get_terrain_vertex_color(world_x, world_z, height, normal)
 
 	var write_index := 0
 	for z in range(grid_resolution):
@@ -1610,12 +1628,31 @@ func generate_chunk_mesh(coordinate: Vector2i) -> ArrayMesh:
 	arrays.resize(Mesh.ARRAY_MAX)
 	arrays[Mesh.ARRAY_VERTEX] = vertices
 	arrays[Mesh.ARRAY_NORMAL] = normals
+	arrays[Mesh.ARRAY_COLOR] = colors
 	arrays[Mesh.ARRAY_TEX_UV] = uvs
 	arrays[Mesh.ARRAY_INDEX] = indices
 
 	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	return mesh
+
+
+func get_terrain_vertex_color(
+	world_x: float,
+	world_z: float,
+	height: float,
+	normal: Vector3
+) -> Color:
+	# Vertex color creates broad material regions with no textures or shader
+	# sampling. Valleys cool into haze while exposed slopes reveal earth/stone.
+	var variation: float = biome_color_noise.get_noise_2d(world_x, world_z) * 0.5 + 0.5
+	var ground_color: Color = grass_color_a.lerp(grass_color_b, variation)
+	var valley_amount: float = clampf(inverse_lerp(1.0, -8.0, height), 0.0, 1.0)
+	ground_color = ground_color.lerp(valley_tint, valley_amount * 0.42)
+	var slope_amount: float = clampf(inverse_lerp(0.035, 0.22, 1.0 - normal.y), 0.0, 1.0)
+	var stone_amount: float = clampf(inverse_lerp(0.16, 0.36, 1.0 - normal.y), 0.0, 1.0)
+	var exposed_color: Color = exposed_earth_color.lerp(highland_stone_color, stone_amount)
+	return ground_color.lerp(exposed_color, slope_amount * 0.82)
 
 
 func remove_chunk(coordinate: Vector2i) -> void:

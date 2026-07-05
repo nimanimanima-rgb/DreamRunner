@@ -111,9 +111,11 @@ func create_mote_multimesh() -> void:
 	)
 
 	for index in range(particle_count):
-		var tint := Color(0.62, 0.78, 1.0, random.randf_range(0.38, 0.78))
+		# Neutral per-instance variation lets each dimension own the mote palette
+		# instead of carrying a permanent blue/purple prototype tint.
+		var tint := Color(0.88, 0.92, 0.94, random.randf_range(0.32, 0.68))
 		if index % 5 == 0:
-			tint = Color(0.9, 0.68, 1.0, random.randf_range(0.35, 0.65))
+			tint = Color(0.96, 0.88, 0.74, random.randf_range(0.3, 0.56))
 		mote_multimesh.set_instance_color(index, tint)
 
 
@@ -168,48 +170,48 @@ func create_dimension_layers() -> void:
 	dimension_layers = [
 		create_dimension(
 			"pale_dawn", "Waking / Pale World",
-			Color(0.18, 0.32, 0.5), Color(0.82, 0.66, 0.68),
-			Color(0.11, 0.14, 0.18), Color(0.5, 0.49, 0.47),
-			Color(0.68, 0.64, 0.7), 0.00135,
-			Color(0.58, 0.65, 0.78), 0.52,
-			Color(0.95, 0.74, 0.67), 1.0,
-			Color(0.62, 0.75, 0.92), 0.85
+			Color(0.12, 0.22, 0.31), Color(0.66, 0.59, 0.53),
+			Color(0.1, 0.12, 0.13), Color(0.34, 0.36, 0.33),
+			Color(0.52, 0.56, 0.58), 0.00165,
+			Color(0.48, 0.55, 0.6), 0.55,
+			Color(0.88, 0.76, 0.62), 1.0,
+			Color(0.58, 0.68, 0.76), 0.65
 		),
 		create_dimension(
 			"cold_overcast", "Dead / Empty World",
-			Color(0.07, 0.09, 0.12), Color(0.34, 0.38, 0.42),
-			Color(0.07, 0.085, 0.1), Color(0.28, 0.31, 0.33),
-			Color(0.38, 0.43, 0.47), 0.00195,
-			Color(0.34, 0.42, 0.52), 0.42,
-			Color(0.58, 0.66, 0.74), 0.65,
-			Color(0.48, 0.57, 0.66), 0.45
+			Color(0.055, 0.075, 0.095), Color(0.28, 0.32, 0.34),
+			Color(0.05, 0.065, 0.075), Color(0.22, 0.245, 0.25),
+			Color(0.34, 0.39, 0.42), 0.0021,
+			Color(0.31, 0.37, 0.41), 0.42,
+			Color(0.5, 0.59, 0.65), 0.62,
+			Color(0.43, 0.5, 0.57), 0.38
 		),
 		create_dimension(
 			"golden_dissolve", "Memory / Golden World",
-			Color(0.24, 0.31, 0.42), Color(0.9, 0.64, 0.34),
-			Color(0.17, 0.14, 0.12), Color(0.55, 0.42, 0.29),
-			Color(0.76, 0.58, 0.38), 0.00155,
-			Color(0.74, 0.59, 0.43), 0.65,
-			Color(1.0, 0.67, 0.32), 1.35,
-			Color(0.98, 0.75, 0.38), 1.1
+			Color(0.19, 0.24, 0.3), Color(0.76, 0.57, 0.36),
+			Color(0.13, 0.12, 0.1), Color(0.43, 0.37, 0.28),
+			Color(0.62, 0.51, 0.39), 0.0017,
+			Color(0.65, 0.54, 0.42), 0.62,
+			Color(0.96, 0.66, 0.36), 1.25,
+			Color(0.9, 0.7, 0.42), 0.95
 		),
 		create_dimension(
 			"blue_liminal_night", "Liminal Night / Dream-Between",
-			Color(0.012, 0.022, 0.065), Color(0.09, 0.14, 0.25),
+			Color(0.012, 0.022, 0.055), Color(0.08, 0.12, 0.18),
 			Color(0.008, 0.015, 0.035), Color(0.06, 0.09, 0.16),
-			Color(0.07, 0.11, 0.21), 0.00145,
+			Color(0.08, 0.12, 0.18), 0.00165,
 			Color(0.15, 0.22, 0.38), 0.48,
 			Color(0.25, 0.4, 0.72), 0.62,
 			Color(0.48, 0.72, 1.0), 1.65
 		),
 		create_dimension(
 			"dust_haze_afternoon", "Forgotten Road / Dust World",
-			Color(0.48, 0.45, 0.42), Color(0.74, 0.64, 0.54),
-			Color(0.26, 0.23, 0.2), Color(0.51, 0.45, 0.39),
-			Color(0.65, 0.57, 0.48), 0.0019,
-			Color(0.67, 0.59, 0.51), 0.58,
-			Color(0.86, 0.69, 0.52), 0.92,
-			Color(0.72, 0.63, 0.55), 0.45
+			Color(0.39, 0.39, 0.37), Color(0.64, 0.57, 0.48),
+			Color(0.22, 0.2, 0.17), Color(0.43, 0.39, 0.34),
+			Color(0.55, 0.5, 0.43), 0.00205,
+			Color(0.58, 0.53, 0.47), 0.58,
+			Color(0.82, 0.67, 0.5), 0.9,
+			Color(0.68, 0.61, 0.53), 0.4
 		),
 	]
 

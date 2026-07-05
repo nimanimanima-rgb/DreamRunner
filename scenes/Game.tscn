@@ -47,11 +47,11 @@ radius = 0.4
 height = 1.8
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial"]
-sky_top_color = Color(0.24, 0.42, 0.66, 1)
-sky_horizon_color = Color(0.84, 0.72, 0.69, 1)
+sky_top_color = Color(0.12, 0.22, 0.31, 1)
+sky_horizon_color = Color(0.66, 0.59, 0.53, 1)
 sky_curve = 0.12
-ground_bottom_color = Color(0.16, 0.2, 0.23, 1)
-ground_horizon_color = Color(0.62, 0.61, 0.55, 1)
+ground_bottom_color = Color(0.1, 0.12, 0.13, 1)
+ground_horizon_color = Color(0.34, 0.36, 0.33, 1)
 ground_curve = 0.08
 
 [sub_resource type="Sky" id="Sky"]
@@ -61,12 +61,12 @@ sky_material = SubResource("SkyMaterial")
 background_mode = 2
 sky = SubResource("Sky")
 ambient_light_source = 2
-ambient_light_color = Color(0.66, 0.72, 0.82, 1)
+ambient_light_color = Color(0.48, 0.55, 0.6, 1)
 ambient_light_energy = 0.55
 fog_enabled = true
-fog_light_color = Color(0.76, 0.71, 0.72, 1)
+fog_light_color = Color(0.52, 0.56, 0.58, 1)
 fog_light_energy = 0.7
-fog_density = 0.0018
+fog_density = 0.00165
 fog_sky_affect = 0.35
 
 [node name="Game" type="Node3D"]
@@ -154,8 +154,8 @@ atmosphere_path = NodePath("../DreamAtmosphere")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.8191522, 0.40557957, -0.4055797, 0, 0.7071069, 0.70710665, 0.5735762, -0.5792279, 0.57922816, 0, 0, 0)
-light_color = Color(1, 0.82, 0.68, 1)
-light_energy = 1.15
+light_color = Color(0.88, 0.76, 0.62, 1)
+light_energy = 1.0
 shadow_enabled = true
 directional_shadow_max_distance = 180.0
 
@@ -299,6 +299,7 @@ horizontal_alignment = 1
 layer = 10
 script = ExtResource("4_overlay")
 player_path = NodePath("../Player")
+audio_manager_path = NodePath("../AudioManager")
 
 [node name="Backdrop" type="ColorRect" parent="StartOverlay"]
 mouse_filter = 2

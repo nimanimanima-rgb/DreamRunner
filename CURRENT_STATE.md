@@ -26,17 +26,18 @@ Dream signal placement is flow-first but no longer linear: a persistent journey 
 
 ## Current world systems
 
-- A first cohesive in-engine palette now unifies the symbolic runner, dusty terrain, muted vegetation and stone, restrained landmarks, and pale dream signal.
-- Natural launch terrain uses sparse world-space ridge fields to form broad slopes, shelves, hill lips, and valley edges while keeping chunk meshes and collision seamless.
+- The first Dream Highlands biome identity now unifies dusty olive grass, exposed earth, pale stone, cool fog valleys, wind-shaped vegetation, weathered human traces, restrained landmarks, and the pale dream signal.
+- Terrain uses browser-safe vertex color to blend muted grass, earth, stone, and cooler lowland tones without textures or custom shaders; the old alternating chunk-color look is gone.
+- Broader rolling noise and sparse world-space ridge fields form windswept slopes, shelves, hill lips, and valley edges while keeping chunk meshes, collision, and glide-friendly flow seamless.
 - A minority of dream-signal routes softly prefer launch-friendly terrain along their approach; normal traversal remains the default.
 - Seeded procedural rolling terrain generated in streamed chunks around the player.
 - Stable active chunk radius with distant chunk removal.
-- Deterministic procedural trees, rocks, and surreal landmarks.
+- Deterministic wind-bent highland trees, embedded weathered rocks, and restrained surreal landmarks share one desaturated material language.
 - Seeded prop rotation, color, clustering, and small-to-rare-giant scale variation.
 - Rare revelation regions place solitary giant trees, pale stone pillars, tilted monoliths, or standing horizon rings on open ridge-like terrain.
 - Lightweight, non-colliding far proxies keep rare giant silhouettes visible beyond the full terrain streaming radius.
 - Scale variation, giant landmarks, and far silhouettes improve environmental readability while preserving open traversal space.
-- Giant trees, pillars, monoliths, horizon rings, and their far proxies now reuse cached dimension palettes: subdued in Waking, warm in Memory, weathered in Dust, drained in Dead/Empty, and cool-emissive in Liminal Night.
+- Giant trees now use asymmetric windswept crowns; pillars and monoliths have quieter broken silhouettes; horizon rings retain their distant double-ring echo. All far proxies reuse cached dimension palettes: subdued in Waking, warm in Memory, weathered in Dust, drained in Dead/Empty, and cool-emissive in Liminal Night.
 - Spawn clearance and spacing rules preserve open running lanes near the starting area.
 - Centralized gentle canopy sway and landmark pulsing.
 - Lightweight dream atmosphere with 48 drifting/recycled motes rendered in one `MultiMesh`.
@@ -53,11 +54,11 @@ Dream signal placement is flow-first but no longer linear: a persistent journey 
 
 ## Current UI/HUD systems
 
-- Procedural ambience begins after the browser-safe entry click, responds subtly to dimension and movement, and can be muted with `M`.
+- Procedural ambience is explicitly unlocked/retried from the browser-safe entry or resume click, responds subtly to dimension and movement, and can be muted with `M`.
 - Sound Design Pass 02 raises the shared mix by `+3 dB` (about 41% linear gain), gives signal resonance one additional dB of clarity, and differentiates dimensions through smoothly blended wind, air pressure, drone weight, and pitch.
 
 - Start overlay: "Click to enter dream," a quiet signal-following prompt, and essential movement, mouse, dimension, pause, reset, and mute controls. Developer-only F3 help stays off the player-facing overlay.
-- Clicking captures the mouse and unlocks audio; `Esc` releases the mouse and pauses; clicking the overlay resumes and recaptures it.
+- Clicking explicitly unlocks audio before pointer capture; `Esc` releases the mouse and pauses; clicking the overlay retries audio, resumes, and recaptures it.
 - Minimal normal-play hint: "Follow the dream signal".
 - Off-screen signal arrow and distance label, hidden when the signal is visible or the mouse is released.
 - Debug HUD toggled with `F3`; hidden by default for a cleaner presentation.

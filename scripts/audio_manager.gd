@@ -66,11 +66,15 @@ func create_generator_streams() -> void:
 
 
 func unlock_audio() -> void:
-	if audio_unlocked:
-		return
-	audio_unlocked = true
-	ambience_player.play()
-	ambience_playback = ambience_player.get_stream_playback() as AudioStreamGeneratorPlayback
+	# This is called directly from the overlay click. Do not permanently short
+	# circuit retries: a browser may reject or suspend an earlier play request.
+	if not ambience_player.playing:
+		ambience_player.play()
+	ambience_player.stream_paused = audio_muted
+	var playback := ambience_player.get_stream_playback() as AudioStreamGeneratorPlayback
+	if playback != null:
+		ambience_playback = playback
+		audio_unlocked = true
 
 
 func _process(delta: float) -> void:
