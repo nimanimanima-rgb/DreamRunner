@@ -14,7 +14,7 @@ Browser first.
 
 ## Engine
 
-Godot 4.
+Godot 4.7 with the GL Compatibility renderer.
 
 ## Current Goal
 
@@ -27,9 +27,10 @@ The current browser-first MVP candidate includes:
 - Fast third-person running, jumping, gliding, and procedural character motion
 - Streamed procedural terrain with natural launch forms and giant landmarks
 - Dream-signal journey loop with path variation and off-screen guidance
-- Mood-driven sky, fog, lighting, motes, and procedural ambience
+- Five dimension layers with atmospheric transitions, dimension-aware signals, and rare dimension-aware human traces
+- Procedural ambience, stylized player silhouette/animation, improved environment silhouettes, and distant giant landmarks
 - Start/pause shell, mouse capture, debug controls, reset, and Web export
 
 ## Next Milestone
 
-**Playtest and Profiling:** gather ten-minute-session feedback, then profile browser streaming and rendering before beginning the custom-asset pipeline.
+**Playtest and Dimension Readability:** gather ten-minute-session feedback, tune layer readability, then continue sound, storytelling, profiling, and custom-asset work.

@@ -2,21 +2,27 @@
 
 ## Current Status: MVP Release Candidate
 
-The current `Game.tscn` build is a stable browser-first playtest candidate with the MVP shell, movement/glide, procedural world, dream-signal journey, prototype dimension layers, ambience, stylized character motion, giant landmarks, and Web export.
+The current `Game.tscn` build is a stable Godot 4.7 browser-first playtest candidate with movement/glide, streamed procedural terrain, varied dream-signal journeys, dimension layers and transitions, rare dimension-aware human traces, dimension-aware signals, ambience, stylized character motion, giant landmarks, far silhouettes, and working Web export.
 
 ## Next Milestones
 
-1. Playtest feedback pass: validate ten-minute movement, journey flow, readability, and friction.
-2. Performance profiling pass: sustained chunk streaming, draw calls, memory, audio generation, and browser hitches.
-3. Asset pipeline: define the workflow and create the first real custom player/environment assets.
-4. Later polish: revisit character animation, sound design 02, mood/atmosphere, and revelation compositions.
-5. Public browser build: cross-browser QA, itch.io preparation, packaging, and release notes.
+1. Playtest feedback: validate ten-minute movement, journey flow, readability, and friction without casually retuning the established movement feel.
+2. Dimension readability tuning: clarify layer identities, transitions, traces, and signals without adding a full parallel-world system.
+3. Sound Design Pass 02: deepen wind, movement grounding, silence, and rare dimension/revelation cues.
+4. Passive storytelling expansion: add a few stronger traces, repeated symbols, and environmental relationships while preserving rarity.
+5. Landmark transformation prototypes: test small dimension-specific changes to selected landmarks before building general swapping systems.
+6. Performance profiling: measure sustained chunk streaming, draw calls, memory, procedural audio, and browser hitches.
+7. First custom-asset pipeline: define the workflow and produce initial player/environment assets.
+8. Public browser build: complete cross-browser QA, itch.io preparation, packaging, and release notes.
 
 ## Known Not Final Yet
 
 - Procedural character animation is suitable for the MVP, not final.
+- Passive traces are intentionally rare at the normal 5% per-chunk chance.
+- Dimension behavior is a foundation for future reality layers, not a finished parallel-world system.
 - Sound is a lightweight ambience foundation, not final sound design.
 - Environment art remains improved primitive/in-engine geometry.
+- Preserve movement feel unless a milestone explicitly targets movement tuning.
 - Custom assets and the final asset pipeline come later.
 - The MVP tests feel and flow, not final presentation.
 

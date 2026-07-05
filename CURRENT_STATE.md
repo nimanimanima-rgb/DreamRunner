@@ -2,7 +2,7 @@
 
 ## Project summary
 
-DreamRunner is a browser-first third-person dream-running game built in Godot 4 with GDScript. Its core experience is fast, calm traversal through a procedural dream landscape: run, jump, glide, follow dream signals, and keep exploring without combat, timers, scoring pressure, or hard failure states. The current build is the first MVP release candidate: a stable playtest build intended for approximately ten-minute sessions.
+DreamRunner is a browser-first third-person dream-running game built in Godot 4.7 with GDScript. Its core experience is fast, calm traversal through a procedural dream landscape: sprint, jump, glide, follow dream signals, and keep exploring without combat, timers, scoring pressure, or hard failure states. The current `Game.tscn` build is an MVP release candidate intended for approximately ten-minute playtest sessions.
 
 ## Current main scene
 
@@ -35,6 +35,7 @@ Dream signal placement is flow-first but no longer linear: a persistent journey 
 - Seeded prop rotation, color, clustering, and small-to-rare-giant scale variation.
 - Rare revelation regions place solitary giant trees, pale stone pillars, tilted monoliths, or standing horizon rings on open ridge-like terrain.
 - Lightweight, non-colliding far proxies keep rare giant silhouettes visible beyond the full terrain streaming radius.
+- Scale variation, giant landmarks, and far silhouettes improve environmental readability while preserving open traversal space.
 - Spawn clearance and spacing rules preserve open sprint lanes near the starting area.
 - Centralized gentle canopy sway and landmark pulsing.
 - Lightweight dream atmosphere with 48 drifting/recycled motes rendered in one `MultiMesh`.
@@ -113,16 +114,20 @@ Dream signal placement is flow-first but no longer linear: a persistent journey 
 ## Known Not Final Yet
 
 - Procedural character animation is acceptable for MVP playtesting, but it is not the final animation solution.
+- Passive storytelling traces are intentionally rare; do not raise their normal frequency without an explicit testing or tuning goal.
+- Dimension layers, transitions, trace visibility, and signal profiles are foundation-level work, not complete parallel worlds.
 - Sound is an ambience foundation, not final sound design or music.
 - Environment silhouettes are improved but still use primitive, in-engine geometry.
+- Preserve the current movement feel unless a task explicitly calls for movement tuning.
 - A real custom-asset pipeline and final asset direction come later.
 - This MVP validates movement, atmosphere, journey flow, and browser performance—not final presentation quality.
 
 ## Next likely milestones
 
 - Run a structured playtest-feedback pass before changing the core feel.
+- Tune dimension readability without turning layers into constant spectacle.
+- Build Sound Design Pass 02 while preserving silence and browser-safe audio.
+- Expand passive storytelling carefully, followed by small landmark-transformation prototypes.
 - Profile sustained chunk streaming, draw calls, procedural audio, and memory in Web builds.
-- Establish the asset pipeline and create the first real custom environment/player assets.
-- Revisit character animation after playtest and asset-pipeline decisions.
-- Later passes: sound design 02, mood/atmosphere polish, and revelation-composition polish.
+- Establish the first real custom environment/player asset pipeline.
 - Prepare and publish a public browser build, including itch.io packaging and cross-browser checks.
