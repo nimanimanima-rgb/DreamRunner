@@ -60,36 +60,37 @@ func unlock_audio() -> void:
 
 
 func _process(delta: float) -> void:
-	update_mood_color(delta)
+	update_dimension_color(delta)
 	if not audio_unlocked or audio_muted:
 		return
 	fill_ambience_buffer()
 	fill_signal_buffer()
 
 
-func update_mood_color(delta: float) -> void:
-	var mood_name: String = str(atmosphere.call("get_current_mood_name"))
+func update_dimension_color(delta: float) -> void:
+	# Audio follows stable IDs so conceptual display names can change safely.
+	var dimension_id: StringName = atmosphere.call("get_current_dimension_id")
 	var target_wind: float = 0.7
 	var target_drone: float = 0.08
 	var target_frequency: float = 58.0
-	match mood_name:
-		"Pale Dawn":
+	match dimension_id:
+		&"pale_dawn":
 			target_wind = 0.62
 			target_drone = 0.045
 			target_frequency = 72.0
-		"Cold Overcast":
+		&"cold_overcast":
 			target_wind = 0.9
 			target_drone = 0.1
 			target_frequency = 46.0
-		"Golden Dissolve":
+		&"golden_dissolve":
 			target_wind = 0.52
 			target_drone = 0.13
 			target_frequency = 82.0
-		"Blue Liminal Night":
+		&"blue_liminal_night":
 			target_wind = 0.42
 			target_drone = 0.12
 			target_frequency = 39.0
-		"Dust Haze Afternoon":
+		&"dust_haze_afternoon":
 			target_wind = 0.78
 			target_drone = 0.035
 			target_frequency = 52.0

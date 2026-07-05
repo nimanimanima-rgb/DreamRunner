@@ -38,8 +38,8 @@ Dream signal placement is flow-first but no longer linear: a persistent journey 
 - Spawn clearance and spacing rules preserve open sprint lanes near the starting area.
 - Centralized gentle canopy sway and landmark pulsing.
 - Lightweight dream atmosphere with 48 drifting/recycled motes rendered in one `MultiMesh`.
-- Five environmental mood states smoothly control sky, fog, ambient light, directional light, and mote color/intensity.
-- Mood palettes are tuned for distinct dawn calm, cold overcast weight, rare golden revelation, playable blue night, and washed travel haze.
+- Five prototype dimension layers smoothly control sky, fog, ambient light, directional light, and mote color/intensity.
+- Dimension palettes preserve the existing dawn, overcast, golden, night, and dust-haze visual recipes while reframing them as layers of one reality.
 - One active primitive-based dream signal with terrain-aware placement, slope checks, glow, pulse, orb, rings, and a long-distance beam.
 - Dream signals use episodic composition templates to favor ridge reveals, solitary giants, horizon calls, and open liminal clearings without adding props.
 - Destination placement is flow-first: long-range signals favor the player’s travel heading, reject nearby/backtracking candidates, and use quiet forward passages most often.
@@ -47,15 +47,15 @@ Dream signal placement is flow-first but no longer linear: a persistent journey 
 
 ## Current UI/HUD systems
 
-- Procedural ambience begins after the browser-safe entry click, responds subtly to mood and movement, and can be muted with `M`.
+- Procedural ambience begins after the browser-safe entry click, responds subtly to dimension and movement, and can be muted with `M`.
 
 - Start overlay: "Click to enter dream" plus movement controls.
 - Clicking captures the mouse and unlocks audio; `Esc` releases the mouse and pauses; clicking the overlay resumes and recaptures it.
 - Minimal normal-play hint: "Follow the dream signal".
 - Off-screen signal arrow and distance label, hidden when the signal is visible or the mouse is released.
 - Debug HUD toggled with `F3`; hidden by default for a cleaner presentation.
-- `F4` cycles Pale Dawn, Cold Overcast, Golden Dissolve, Blue Liminal Night, and Dust Haze Afternoon for development testing.
-- Debug information includes movement state, speed, vertical velocity, sprint/glide state, mouse status, current chunk, active chunks, active props, giant forms, far silhouettes, dream motes, current mood, destination distance, composition type, and placement mode.
+- `F4` cycles Waking / Pale World, Dead / Empty World, Memory / Golden World, Liminal Night / Dream-Between, and Forgotten Road / Dust World for development testing.
+- Debug information includes movement state, speed, vertical velocity, sprint/glide state, mouse status, current chunk, active chunks, active props, giant forms, far silhouettes, dream motes, current dimension, destination distance, composition type, and placement mode.
 
 ## Current browser/export status
 
@@ -74,12 +74,12 @@ Dream signal placement is flow-first but no longer linear: a persistent journey 
 - `res://scenes/ProceduralTest.tscn` - preserved procedural sandbox.
 - `res://scripts/player_controller.gd` - movement, sprint, jump, glide, slopes, camera, pointer lock, and reset.
 - `res://scripts/terrain_chunk_manager.gd` - terrain generation, chunk streaming, props, collisions, shared materials, and environmental motion.
-- `res://scripts/dream_atmosphere.gd` - batched drifting dream motes and interpolated environmental mood states.
+- `res://scripts/dream_atmosphere.gd` - batched drifting dream motes and interpolated prototype dimension layers.
 - `res://scripts/dream_destination_manager.gd` - active destination placement, visual marker, trigger response, regeneration, and lost-player brightness.
 - `res://scripts/dream_signal_guidance.gd` - off-screen direction arrow and signal distance.
 - `res://scripts/debug_hud.gd` - `F3` diagnostics and runtime counters.
 - `res://scripts/start_overlay.gd` - start/control overlay visibility based on mouse capture.
-- `res://scripts/audio_manager.gd` - browser-unlocked procedural ambience, mood coloration, signal resonance, and `M` mute.
+- `res://scripts/audio_manager.gd` - browser-unlocked procedural ambience, dimension coloration, signal resonance, and `M` mute.
 - `res://export_presets.cfg` - Web export configuration.
 - `res://GAME_DESIGN.md` - high-level fantasy and design principles; some build-status text is outdated.
 - `res://ROADMAP.md` - milestone history and future work; several procedural checklist items lag behind implementation.
@@ -90,7 +90,7 @@ Dream signal placement is flow-first but no longer linear: a persistent journey 
 - Stable movement feel, sprint speed, high jump, glide, air control, and slope behavior.
 - Smooth camera follow, pitch limits, spring arm, FOV response, and jitter fixes.
 - Browser click-to-capture, `Esc` release, and click-to-recapture behavior.
-- `R` reset, start overlay, off-screen guidance, `F3` debug toggle, and `F4` mood cycling.
+- `R` reset, start overlay, off-screen guidance, `F3` debug toggle, and `F4` dimension cycling.
 - Procedural terrain seams, collision orientation, deterministic generation, and chunk recycling.
 - Open sprint lanes and safe starting-area clearance.
 - Dream destination placement, triggering, regeneration, and guidance.

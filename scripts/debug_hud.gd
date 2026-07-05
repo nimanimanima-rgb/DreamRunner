@@ -53,7 +53,7 @@ func _process(_delta: float) -> void:
 		)
 		if atmosphere != null:
 			terrain_text += "\nDream motes: %d" % atmosphere.call("get_active_mote_count")
-			terrain_text += "\nMood: %s" % atmosphere.call("get_current_mood_name")
+			terrain_text += "\nDimension: %s" % atmosphere.call("get_current_dimension_name")
 		if destination_manager != null:
 			var destination_distance: float = float(
 				destination_manager.call("get_destination_distance")

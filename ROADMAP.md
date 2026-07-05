@@ -2,7 +2,7 @@
 
 ## Current Status: MVP Release Candidate
 
-The current `Game.tscn` build is a stable browser-first playtest candidate with the MVP shell, movement/glide, procedural world, dream-signal journey, mood states, ambience, stylized character motion, giant landmarks, and Web export.
+The current `Game.tscn` build is a stable browser-first playtest candidate with the MVP shell, movement/glide, procedural world, dream-signal journey, prototype dimension layers, ambience, stylized character motion, giant landmarks, and Web export.
 
 ## Next Milestones
 
@@ -24,6 +24,11 @@ The current `Game.tscn` build is a stable browser-first playtest candidate with 
 
 - Added browser-unlocked procedural wind, distant tonal ambience, mood coloration, and restrained dream-signal resonance.
 - Sprinting and gliding gently strengthen the air layer; `M` toggles mute for testing.
+
+## Dimension System Foundation Pass 01
+
+- Reframed the five atmosphere moods as prototype dimension layers while preserving their visual and audio behavior.
+- Added stable dimension IDs, conceptual display names, and a change signal for future layer-specific objects and story traces.
 
 ## Natural Launch Terrain Pass 01
 
