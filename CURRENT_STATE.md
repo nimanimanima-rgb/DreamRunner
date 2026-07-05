@@ -36,6 +36,7 @@ Dream signal placement is flow-first but no longer linear: a persistent journey 
 - Rare revelation regions place solitary giant trees, pale stone pillars, tilted monoliths, or standing horizon rings on open ridge-like terrain.
 - Lightweight, non-colliding far proxies keep rare giant silhouettes visible beyond the full terrain streaming radius.
 - Scale variation, giant landmarks, and far silhouettes improve environmental readability while preserving open traversal space.
+- Giant trees, pillars, monoliths, horizon rings, and their far proxies now reuse cached dimension palettes: subdued in Waking, warm in Memory, weathered in Dust, drained in Dead/Empty, and cool-emissive in Liminal Night.
 - Spawn clearance and spacing rules preserve open sprint lanes near the starting area.
 - Centralized gentle canopy sway and landmark pulsing.
 - Lightweight dream atmosphere with 48 drifting/recycled motes rendered in one `MultiMesh`.

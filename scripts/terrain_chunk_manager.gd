@@ -97,6 +97,7 @@ var trace_dust_material: StandardMaterial3D
 var trace_dead_material: StandardMaterial3D
 var trace_liminal_material: StandardMaterial3D
 var trace_liminal_light_material: StandardMaterial3D
+var landmark_dimension_materials: Dictionary = {}
 var foliage_materials: Array[StandardMaterial3D] = []
 var rock_materials: Array[StandardMaterial3D] = []
 var landmark_materials: Array[StandardMaterial3D] = []
@@ -128,6 +129,7 @@ var active_giant_landmark_count: int = 0
 var animated_foliage: Array[Dictionary] = []
 var animated_landmarks: Array[Dictionary] = []
 var story_traces: Array[Node3D] = []
+var dimension_landmarks: Array[Dictionary] = []
 var current_dimension_id: StringName = &"pale_dawn"
 var animation_time: float = 0.0
 
@@ -197,6 +199,7 @@ func create_shared_resources() -> void:
 	trace_dead_material = create_trace_material(Color(0.25, 0.29, 0.31), Color(0.08, 0.12, 0.15), 0.08)
 	trace_liminal_material = create_trace_material(Color(0.075, 0.085, 0.12), Color(0.08, 0.12, 0.22), 0.2)
 	trace_liminal_light_material = create_trace_material(Color(0.2, 0.3, 0.48), Color(0.24, 0.42, 0.8), 0.5)
+	create_landmark_dimension_materials()
 	foliage_materials = [
 		foliage_material,
 		create_grass_material(foliage_color.lightened(0.08)),
@@ -325,6 +328,58 @@ func create_trace_material(
 	material.emission = emission
 	material.emission_energy_multiplier = emission_energy
 	return material
+
+
+func create_landmark_dimension_materials() -> void:
+	landmark_dimension_materials = {
+		&"pale_dawn": create_landmark_material_profile(
+			Color(0.3, 0.24, 0.19), Color(0.29, 0.38, 0.28),
+			Color(0.57, 0.55, 0.5), Color(0.28, 0.3, 0.31),
+			Color(0.63, 0.62, 0.57), Color(0.34, 0.32, 0.26), 0.14
+		),
+		&"cold_overcast": create_landmark_material_profile(
+			Color(0.17, 0.18, 0.19), Color(0.18, 0.22, 0.23),
+			Color(0.38, 0.42, 0.45), Color(0.12, 0.15, 0.18),
+			Color(0.42, 0.5, 0.58), Color(0.2, 0.34, 0.52), 0.25
+		),
+		&"golden_dissolve": create_landmark_material_profile(
+			Color(0.38, 0.28, 0.18), Color(0.42, 0.43, 0.25),
+			Color(0.65, 0.55, 0.4), Color(0.42, 0.34, 0.26),
+			Color(0.76, 0.58, 0.3), Color(0.72, 0.42, 0.16), 0.38
+		),
+		&"blue_liminal_night": create_landmark_material_profile(
+			Color(0.08, 0.1, 0.14), Color(0.08, 0.13, 0.16),
+			Color(0.25, 0.32, 0.45), Color(0.07, 0.09, 0.15),
+			Color(0.42, 0.62, 0.92), Color(0.3, 0.52, 1.0), 0.75
+		),
+		&"dust_haze_afternoon": create_landmark_material_profile(
+			Color(0.29, 0.24, 0.18), Color(0.33, 0.31, 0.23),
+			Color(0.48, 0.42, 0.34), Color(0.23, 0.21, 0.18),
+			Color(0.58, 0.48, 0.36), Color(0.34, 0.25, 0.16), 0.18
+		),
+	}
+
+
+func create_landmark_material_profile(
+	trunk_color: Color,
+	canopy_color: Color,
+	pillar_color: Color,
+	monolith_color: Color,
+	ring_color: Color,
+	ring_emission: Color,
+	ring_energy: float
+) -> Dictionary:
+	var ring_material := create_grass_material(ring_color)
+	ring_material.emission_enabled = true
+	ring_material.emission = ring_emission
+	ring_material.emission_energy_multiplier = ring_energy
+	return {
+		&"tree_trunk": create_grass_material(trunk_color),
+		&"tree_canopy": create_grass_material(canopy_color),
+		&"pillar": create_grass_material(pillar_color),
+		&"monolith": create_grass_material(monolith_color),
+		&"ring": ring_material,
+	}
 
 
 func sample_height(world_x: float, world_z: float) -> float:
@@ -608,6 +663,7 @@ func _on_dimension_changed(dimension_id: StringName, _display_name: String) -> v
 	for trace in story_traces:
 		if is_instance_valid(trace):
 			update_story_trace_visibility(trace)
+	update_dimension_landmarks()
 
 
 func update_story_trace_visibility(trace: Node3D) -> void:
@@ -663,6 +719,58 @@ func apply_story_trace_materials(
 			mesh.material_override = main_material
 
 
+func register_dimension_landmark(
+	root: Node3D,
+	landmark_type: StringName,
+	meshes: Array
+) -> void:
+	dimension_landmarks.append({
+		"root": root,
+		"type": landmark_type,
+		"meshes": meshes,
+	})
+	apply_dimension_landmark_materials(dimension_landmarks.back())
+
+
+func update_dimension_landmarks() -> void:
+	for index in range(dimension_landmarks.size() - 1, -1, -1):
+		var entry: Dictionary = dimension_landmarks[index]
+		if not is_instance_valid(entry["root"]):
+			dimension_landmarks.remove_at(index)
+			continue
+		apply_dimension_landmark_materials(entry)
+
+
+func apply_dimension_landmark_materials(entry: Dictionary) -> void:
+	var profile: Dictionary = landmark_dimension_materials.get(
+		current_dimension_id,
+		landmark_dimension_materials[&"pale_dawn"]
+	)
+	var landmark_type: StringName = entry["type"]
+	var meshes: Array = entry["meshes"]
+	match landmark_type:
+		&"giant_tree":
+			for mesh_index in range(meshes.size()):
+				var role: StringName = &"tree_trunk" if mesh_index == 0 else &"tree_canopy"
+				(meshes[mesh_index] as MeshInstance3D).material_override = profile[role]
+		&"pillar":
+			for mesh in meshes:
+				(mesh as MeshInstance3D).material_override = profile[&"pillar"]
+		&"monolith":
+			for mesh in meshes:
+				(mesh as MeshInstance3D).material_override = profile[&"monolith"]
+		&"ring":
+			for mesh in meshes:
+				(mesh as MeshInstance3D).material_override = profile[&"ring"]
+
+
+func remove_dimension_landmarks_under(owner: Node) -> void:
+	for index in range(dimension_landmarks.size() - 1, -1, -1):
+		var root: Node = dimension_landmarks[index]["root"]
+		if not is_instance_valid(root) or root == owner or owner.is_ancestor_of(root):
+			dimension_landmarks.remove_at(index)
+
+
 func get_chunk_prop_seed(coordinate: Vector2i) -> int:
 	var mixed_seed := prop_seed
 	mixed_seed ^= coordinate.x * 73856093
@@ -716,6 +824,7 @@ func update_far_landmark_proxies() -> void:
 	for coordinate in far_landmark_proxies.keys():
 		if not needed_proxies.has(coordinate):
 			var proxy: Node3D = far_landmark_proxies[coordinate]
+			remove_dimension_landmarks_under(proxy)
 			far_landmark_proxies.erase(coordinate)
 			proxy.queue_free()
 
@@ -994,6 +1103,11 @@ func create_solitary_giant_tree(
 		random
 	))
 	chunk.add_child(giant_tree)
+	var tree_meshes: Array[MeshInstance3D] = [trunk]
+	for child in giant_tree.get_children():
+		if child is MeshInstance3D and child != trunk:
+			tree_meshes.append(child)
+	register_dimension_landmark(giant_tree, &"giant_tree", tree_meshes)
 	if add_collision:
 		animated_foliage.append({
 			"node": main_canopy,
@@ -1070,6 +1184,7 @@ func create_pale_stone_pillar(
 	pillar_crown.material_override = pale_stone_material
 	pillar.add_child(pillar_crown)
 	chunk.add_child(pillar)
+	register_dimension_landmark(pillar, &"pillar", [pillar, pillar_crown])
 
 	if add_collision:
 		var collision := CollisionShape3D.new()
@@ -1116,6 +1231,7 @@ func create_tilted_monolith(
 	broken_crown.material_override = rock_material
 	monolith.add_child(broken_crown)
 	chunk.add_child(monolith)
+	register_dimension_landmark(monolith, &"monolith", [monolith, broken_crown])
 
 	if add_collision:
 		var collision := CollisionShape3D.new()
@@ -1156,6 +1272,7 @@ func create_horizon_ring(
 	inner_ring.material_override = faded_ring_material
 	ring.add_child(inner_ring)
 	chunk.add_child(ring)
+	register_dimension_landmark(ring, &"ring", [ring, inner_ring])
 
 
 func create_tree(
@@ -1481,6 +1598,7 @@ func remove_chunk(coordinate: Vector2i) -> void:
 	var chunk: StaticBody3D = active_chunks[coordinate]
 	remove_chunk_animation_entries(chunk)
 	remove_chunk_story_traces(chunk)
+	remove_dimension_landmarks_under(chunk)
 	active_prop_count -= chunk_prop_counts.get(coordinate, 0)
 	active_giant_landmark_count -= chunk_giant_counts.get(coordinate, 0)
 	chunk_prop_counts.erase(coordinate)
