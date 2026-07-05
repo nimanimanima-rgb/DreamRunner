@@ -40,7 +40,8 @@ Dream signal placement is flow-first but no longer linear: a persistent journey 
 - Lightweight dream atmosphere with 48 drifting/recycled motes rendered in one `MultiMesh`.
 - Five prototype dimension layers smoothly control sky, fog, ambient light, directional light, and mote color/intensity.
 - Dimension palettes preserve the existing dawn, overcast, golden, night, and dust-haze visual recipes while reframing them as layers of one reality.
-- Very rare primitive human traces now appear as roadside shelters, dead utility poles with broken markers, and ruined frames. They reveal by dimension and remain non-colliding to preserve high-speed flow.
+- Very rare primitive human traces now appear as roadside shelters, dead utility poles with broken markers, and ruined frames. Dimension changes apply cached visibility and material profiles: ordinary in Waking, warm shelters in Memory, dusty poles in Forgotten Road, cold ruins in Dead/Empty, and faint silhouettes in Liminal Night. They remain non-colliding to preserve high-speed flow.
+- Passive traces use their rare 5% per-chunk chance for normal play; an exported multiplier remains available for focused testing.
 - One active primitive-based dream signal with terrain-aware placement, slope checks, glow, pulse, orb, rings, and a long-distance beam.
 - Dream signals use episodic composition templates to favor ridge reveals, solitary giants, horizon calls, and open liminal clearings without adding props.
 - Destination placement is flow-first: long-range signals favor the player’s travel heading, reject nearby/backtracking candidates, and use quiet forward passages most often.

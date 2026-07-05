@@ -29,8 +29,11 @@ extends Node3D
 
 @export_group("Passive Story Traces")
 @export var atmosphere_path: NodePath
-@export_range(0.0, 0.2, 0.005) var story_trace_chance: float = 0.05
-@export var story_trace_clearance: float = 28.0
+@export_range(0.0, 0.2, 0.005) var passive_trace_spawn_chance: float = 0.05
+# Optional testing multiplier. Keep at 1.0 for normal sparse density;
+# generation remains capped at one trace per chunk.
+@export_range(1.0, 10.0, 0.5) var passive_trace_test_multiplier: float = 1.0
+@export var passive_trace_min_distance: float = 28.0
 
 @export_group("Giant Revelation Landmarks")
 @export_range(2, 8, 1) var giant_region_size: int = 4
@@ -89,6 +92,11 @@ var faded_ring_material: StandardMaterial3D
 var trace_material: StandardMaterial3D
 var trace_dark_material: StandardMaterial3D
 var trace_light_material: StandardMaterial3D
+var trace_memory_material: StandardMaterial3D
+var trace_dust_material: StandardMaterial3D
+var trace_dead_material: StandardMaterial3D
+var trace_liminal_material: StandardMaterial3D
+var trace_liminal_light_material: StandardMaterial3D
 var foliage_materials: Array[StandardMaterial3D] = []
 var rock_materials: Array[StandardMaterial3D] = []
 var landmark_materials: Array[StandardMaterial3D] = []
@@ -184,6 +192,11 @@ func create_shared_resources() -> void:
 	trace_dark_material = create_grass_material(Color(0.19, 0.19, 0.18))
 	trace_light_material = create_landmark_material(Color(0.78, 0.58, 0.3))
 	trace_light_material.emission_energy_multiplier = 0.75
+	trace_memory_material = create_trace_material(Color(0.5, 0.39, 0.25), Color(0.34, 0.2, 0.08), 0.16)
+	trace_dust_material = create_trace_material(Color(0.36, 0.31, 0.25), Color(0.18, 0.12, 0.07), 0.06)
+	trace_dead_material = create_trace_material(Color(0.25, 0.29, 0.31), Color(0.08, 0.12, 0.15), 0.08)
+	trace_liminal_material = create_trace_material(Color(0.075, 0.085, 0.12), Color(0.08, 0.12, 0.22), 0.2)
+	trace_liminal_light_material = create_trace_material(Color(0.2, 0.3, 0.48), Color(0.24, 0.42, 0.8), 0.5)
 	foliage_materials = [
 		foliage_material,
 		create_grass_material(foliage_color.lightened(0.08)),
@@ -299,6 +312,18 @@ func create_landmark_material(color: Color) -> StandardMaterial3D:
 	material.emission_enabled = true
 	material.emission = color * 0.4
 	material.emission_energy_multiplier = 0.38
+	return material
+
+
+func create_trace_material(
+	albedo: Color,
+	emission: Color,
+	emission_energy: float
+) -> StandardMaterial3D:
+	var material := create_grass_material(albedo)
+	material.emission_enabled = true
+	material.emission = emission
+	material.emission_energy_multiplier = emission_energy
 	return material
 
 
@@ -462,13 +487,15 @@ func create_chunk_props(chunk: StaticBody3D, coordinate: Vector2i) -> Vector2i:
 			placed_positions.append(Vector2(landmark_position.x, landmark_position.z))
 			prop_count += 1
 
-	# Human traces are deliberately rarer than natural props: at the default
-	# active radius, only about one appears across the streamed area at a time.
-	if random.randf() < story_trace_chance:
+	var passive_trace_chance := minf(
+		passive_trace_spawn_chance * passive_trace_test_multiplier,
+		1.0
+	)
+	if random.randf() < passive_trace_chance:
 		var trace_position := get_random_prop_position(random, coordinate, placed_positions)
 		if (
 			is_spawn_area_clear(coordinate, trace_position)
-			and is_prop_spacing_clear(trace_position, placed_positions, story_trace_clearance)
+			and is_prop_spacing_clear(trace_position, placed_positions, passive_trace_min_distance)
 		):
 			create_story_trace(chunk, trace_position, random)
 			placed_positions.append(Vector2(trace_position.x, trace_position.z))
@@ -505,15 +532,15 @@ func create_story_trace(
 	match trace_kind:
 		0:
 			trace.name = "StoryTrace_RoadsideShelter"
-			trace.set_meta("dimension_ids", PackedStringArray(["pale_dawn", "golden_dissolve"]))
+			trace.set_meta("trace_kind", &"shelter")
 			build_roadside_shelter(trace)
 		1:
 			trace.name = "StoryTrace_DeadUtilityPole"
-			trace.set_meta("dimension_ids", PackedStringArray(["pale_dawn", "dust_haze_afternoon"]))
+			trace.set_meta("trace_kind", &"utility_pole")
 			build_dead_utility_pole(trace)
 		_:
 			trace.name = "StoryTrace_RuinedFrame"
-			trace.set_meta("dimension_ids", PackedStringArray(["pale_dawn", "cold_overcast"]))
+			trace.set_meta("trace_kind", &"ruined_frame")
 			build_ruined_frame(trace)
 
 	# These first traces are intentionally non-colliding. Their narrow pieces
@@ -534,6 +561,7 @@ func build_roadside_shelter(trace: Node3D) -> void:
 	light.scale = Vector3.ONE * 0.28
 	light.mesh = trace_light_mesh
 	light.material_override = trace_light_material
+	light.set_meta("trace_light", true)
 	trace.add_child(light)
 
 
@@ -545,6 +573,7 @@ func build_dead_utility_pole(trace: Node3D) -> void:
 	pole.scale = Vector3(0.42, 9.0, 0.42)
 	pole.mesh = trace_pole_mesh
 	pole.material_override = trace_dark_material
+	pole.set_meta("dark_part", true)
 	trace.add_child(pole)
 	add_trace_box(trace, Vector3(0.0, 8.25, 0.0), Vector3(4.8, 0.28, 0.3), trace_dark_material)
 	add_trace_box(trace, Vector3(1.8, 1.15, 0.35), Vector3(0.32, 2.3, 1.3), trace_material, -0.16)
@@ -570,6 +599,7 @@ func add_trace_box(
 	part.scale = size
 	part.mesh = trace_box_mesh
 	part.material_override = material
+	part.set_meta("dark_part", material == trace_dark_material)
 	parent.add_child(part)
 
 
@@ -581,8 +611,56 @@ func _on_dimension_changed(dimension_id: StringName, _display_name: String) -> v
 
 
 func update_story_trace_visibility(trace: Node3D) -> void:
-	var dimension_ids: PackedStringArray = trace.get_meta("dimension_ids", PackedStringArray())
-	trace.visible = dimension_ids.has(String(current_dimension_id))
+	var trace_kind: StringName = trace.get_meta("trace_kind", &"")
+	trace.visible = true
+	trace.scale = Vector3.ONE
+
+	match current_dimension_id:
+		&"pale_dawn":
+			# Ordinary matter: present, restrained, and without a guiding light.
+			trace.scale = Vector3.ONE * 0.96
+			apply_story_trace_materials(trace, trace_material, trace_dark_material, null)
+		&"golden_dissolve":
+			trace.visible = trace_kind == &"shelter"
+			trace.scale = Vector3.ONE * 1.03
+			apply_story_trace_materials(
+				trace, trace_memory_material, trace_memory_material, trace_light_material
+			)
+		&"dust_haze_afternoon":
+			trace.visible = trace_kind == &"utility_pole"
+			apply_story_trace_materials(trace, trace_dust_material, trace_dust_material, null)
+		&"cold_overcast":
+			trace.visible = trace_kind == &"ruined_frame"
+			trace.scale = Vector3.ONE * 0.98
+			apply_story_trace_materials(trace, trace_dead_material, trace_dead_material, null)
+		&"blue_liminal_night":
+			# Night reveals every trace as a near-silhouette; shelter lights become cold omens.
+			trace.scale = Vector3.ONE * 1.02
+			apply_story_trace_materials(
+				trace, trace_liminal_material, trace_liminal_material, trace_liminal_light_material
+			)
+
+
+func apply_story_trace_materials(
+	trace: Node3D,
+	main_material: StandardMaterial3D,
+	dark_material: StandardMaterial3D,
+	light_material: StandardMaterial3D
+) -> void:
+	for child in trace.get_children():
+		var mesh := child as MeshInstance3D
+		if mesh == null:
+			continue
+		if bool(mesh.get_meta("trace_light", false)):
+			mesh.visible = light_material != null
+			if light_material != null:
+				mesh.material_override = light_material
+		elif bool(mesh.get_meta("dark_part", false)):
+			mesh.visible = true
+			mesh.material_override = dark_material
+		else:
+			mesh.visible = true
+			mesh.material_override = main_material
 
 
 func get_chunk_prop_seed(coordinate: Vector2i) -> int:
