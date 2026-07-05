@@ -58,6 +58,7 @@ Dream signal placement is flow-first but no longer linear: a persistent journey 
 - Off-screen signal arrow and distance label, hidden when the signal is visible or the mouse is released.
 - Debug HUD toggled with `F3`; hidden by default for a cleaner presentation.
 - `F4` cycles Waking / Pale World, Dead / Empty World, Memory / Golden World, Liminal Night / Dream-Between, and Forgotten Road / Dust World for development testing.
+- Dimension changes use a brief 0.7-second color veil and quiet procedural tone while the existing atmosphere continues its smooth interpolation; player control is never blocked.
 - Debug information includes movement state, speed, vertical velocity, sprint/glide state, mouse status, current chunk, active chunks, active props, giant forms, far silhouettes, dream motes, current dimension, destination distance, composition type, and placement mode.
 
 ## Current browser/export status

@@ -15,6 +15,7 @@ extends Node
 
 const MIX_RATE: float = 22050.0
 const SIGNAL_DURATION: float = 1.8
+const DIMENSION_CUE_DURATION: float = 0.65
 
 var random := RandomNumberGenerator.new()
 var ambience_playback: AudioStreamGeneratorPlayback
@@ -30,6 +31,8 @@ var current_wind_level: float = 0.7
 var current_drone_level: float = 0.08
 var current_drone_frequency: float = 58.0
 var current_signal_frequency: float = 176.0
+var dimension_cue_samples_remaining: int = 0
+var dimension_cue_phase: float = 0.0
 
 
 func _ready() -> void:
@@ -37,6 +40,7 @@ func _ready() -> void:
 	create_generator_streams()
 	player.connect("dream_entered", unlock_audio)
 	destination_manager.connect("destination_reached", play_signal_resonance)
+	atmosphere.connect("dimension_changed", play_dimension_transition_cue)
 
 
 func create_generator_streams() -> void:
@@ -123,8 +127,34 @@ func fill_ambience_buffer() -> void:
 		var soft_air: float = (fast_wind - slow_wind) * wind_level
 		drone_phase = fmod(drone_phase + TAU * current_drone_frequency / MIX_RATE, TAU)
 		var distant_tone: float = (sin(drone_phase) + sin(drone_phase * 0.503) * 0.28) * current_drone_level
-		var sample: float = clampf(soft_air * 0.42 + distant_tone, -0.75, 0.75)
+		var dimension_cue := get_dimension_transition_sample()
+		var sample: float = clampf(
+			soft_air * 0.42 + distant_tone + dimension_cue,
+			-0.75,
+			0.75
+		)
 		ambience_playback.push_frame(Vector2(sample * 0.96, sample))
+
+
+func play_dimension_transition_cue(_dimension_id: StringName, _display_name: String) -> void:
+	if not audio_unlocked or audio_muted:
+		return
+	dimension_cue_samples_remaining = int(DIMENSION_CUE_DURATION * MIX_RATE)
+	dimension_cue_phase = 0.0
+
+
+func get_dimension_transition_sample() -> float:
+	if dimension_cue_samples_remaining <= 0:
+		return 0.0
+	var total_samples := DIMENSION_CUE_DURATION * MIX_RATE
+	var progress := 1.0 - float(dimension_cue_samples_remaining) / total_samples
+	var envelope := sin(progress * PI) * 0.035
+	dimension_cue_phase = fmod(
+		dimension_cue_phase + TAU * current_signal_frequency * 0.5 / MIX_RATE,
+		TAU
+	)
+	dimension_cue_samples_remaining -= 1
+	return sin(dimension_cue_phase) * envelope
 
 
 func play_signal_resonance() -> void:

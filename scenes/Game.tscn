@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://scripts/dream_destination_manager.gd" id="6_destination"]
 [ext_resource type="Script" path="res://scripts/dream_signal_guidance.gd" id="7_guidance"]
 [ext_resource type="Script" path="res://scripts/audio_manager.gd" id="8_audio"]
+[ext_resource type="Script" path="res://scripts/dimension_transition_overlay.gd" id="9_dimension_transition"]
 
 [sub_resource type="StandardMaterial3D" id="PlayerMaterial"]
 albedo_color = Color(0.16, 0.22, 0.29, 1)
@@ -183,6 +184,21 @@ destination_manager_path = NodePath("../DreamDestinationManager")
 [node name="Ambience" type="AudioStreamPlayer" parent="AudioManager"]
 
 [node name="SignalResonance" type="AudioStreamPlayer" parent="AudioManager"]
+
+[node name="DimensionTransition" type="CanvasLayer" parent="."]
+layer = 8
+script = ExtResource("9_dimension_transition")
+atmosphere_path = NodePath("../DreamAtmosphere")
+
+[node name="Veil" type="ColorRect" parent="DimensionTransition"]
+visible = false
+mouse_filter = 2
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.72, 0.8, 0.86, 0)
 
 [node name="DebugHUD" type="CanvasLayer" parent="."]
 visible = false
