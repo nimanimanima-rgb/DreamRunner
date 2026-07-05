@@ -5,6 +5,10 @@
 # Export builds
 exports/*
 !exports/.gitkeep
+!exports/.gdignore
+!exports/web/
+exports/web/*
+!exports/web/vercel.json
 
 # Temporary files
 *.tmp

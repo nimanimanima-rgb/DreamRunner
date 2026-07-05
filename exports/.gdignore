@@ -1,0 +1,1 @@
+# Keep generated Web export files out of Godot's resource import scan.

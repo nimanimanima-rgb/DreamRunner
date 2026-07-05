@@ -34,3 +34,7 @@ The current browser-first MVP candidate includes:
 ## Next Milestone
 
 **Playtest and Dimension Readability:** gather ten-minute-session feedback, tune layer readability, then continue sound, storytelling, profiling, and custom-asset work.
+
+## Web deployment
+
+Export the `Web` preset as a release build to `exports/web/index.html`. From `exports/web`, run `vercel.cmd --prod`; Vercel serves that directory at the deployment root. Keep the generated `.wasm`, `.pck`, `.js`, worklet, icon, and `index.html` files together.

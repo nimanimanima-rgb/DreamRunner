@@ -70,7 +70,9 @@ Dream signal placement is flow-first but no longer linear: a persistent journey 
 - Browser/Web is the primary target.
 - The project uses Godot 4.7, GL Compatibility rendering, and Jolt Physics.
 - Pointer-lock behavior is designed around browser user-gesture requirements.
-- The existing `Web` export preset outputs to `res://exports/web/DreamRunner.html`.
+- The `Web` release preset outputs to `res://exports/web/index.html`; deploy from `exports/web` with `vercel.cmd --prod` so Vercel serves it at the site root.
+- The Web package includes `Game.tscn` and its resolved dependencies rather than the preserved legacy test scenes.
+- `exports/.gdignore` prevents generated Web files from entering Godot's import scan. Minimal Vercel headers keep `index.html` revalidated while allowing the CDN to cache the larger engine/data files between requests.
 - Web exports and browser smoke tests have succeeded; the current export is playable as an MVP release candidate.
 - Continue checking sustained chunk-streaming performance, loading hitches, browser input behavior, and unusual aspect ratios.
 
