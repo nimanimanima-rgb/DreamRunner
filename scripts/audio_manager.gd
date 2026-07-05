@@ -29,6 +29,7 @@ var signal_active: bool = false
 var current_wind_level: float = 0.7
 var current_drone_level: float = 0.08
 var current_drone_frequency: float = 58.0
+var current_signal_frequency: float = 176.0
 
 
 func _ready() -> void:
@@ -73,31 +74,38 @@ func update_dimension_color(delta: float) -> void:
 	var target_wind: float = 0.7
 	var target_drone: float = 0.08
 	var target_frequency: float = 58.0
+	var target_signal_frequency: float = 176.0
 	match dimension_id:
 		&"pale_dawn":
 			target_wind = 0.62
 			target_drone = 0.045
 			target_frequency = 72.0
+			target_signal_frequency = 176.0
 		&"cold_overcast":
 			target_wind = 0.9
 			target_drone = 0.1
 			target_frequency = 46.0
+			target_signal_frequency = 132.0
 		&"golden_dissolve":
 			target_wind = 0.52
 			target_drone = 0.13
 			target_frequency = 82.0
+			target_signal_frequency = 196.0
 		&"blue_liminal_night":
 			target_wind = 0.42
 			target_drone = 0.12
 			target_frequency = 39.0
+			target_signal_frequency = 148.0
 		&"dust_haze_afternoon":
 			target_wind = 0.78
 			target_drone = 0.035
 			target_frequency = 52.0
+			target_signal_frequency = 164.0
 	var weight: float = 1.0 - exp(-delta * 0.45)
 	current_wind_level = lerpf(current_wind_level, target_wind, weight)
 	current_drone_level = lerpf(current_drone_level, target_drone, weight)
 	current_drone_frequency = lerpf(current_drone_frequency, target_frequency, weight)
+	current_signal_frequency = lerpf(current_signal_frequency, target_signal_frequency, weight)
 
 
 func fill_ambience_buffer() -> void:
@@ -139,7 +147,11 @@ func fill_signal_buffer() -> void:
 		var time: float = float(signal_sample) / MIX_RATE
 		var progress: float = time / SIGNAL_DURATION
 		var envelope: float = sin(minf(progress * PI * 2.2, PI)) * exp(-2.6 * time)
-		var resonance: float = (sin(TAU * 176.0 * time) + sin(TAU * 264.0 * time) * 0.38 + sin(TAU * 88.0 * time) * 0.3) * envelope * 0.28
+		var resonance: float = (
+			sin(TAU * current_signal_frequency * time)
+			+ sin(TAU * current_signal_frequency * 1.5 * time) * 0.38
+			+ sin(TAU * current_signal_frequency * 0.5 * time) * 0.3
+		) * envelope * 0.28
 		signal_playback.push_frame(Vector2(resonance, resonance * 0.94))
 		signal_sample += 1
 

@@ -5,6 +5,7 @@ signal destination_reached
 @export var player_path: NodePath
 @export var camera_path: NodePath
 @export var terrain_manager_path: NodePath
+@export var atmosphere_path: NodePath
 @export_range(200.0, 500.0, 10.0) var minimum_distance: float = 320.0
 @export_range(300.0, 800.0, 10.0) var preferred_distance_min: float = 520.0
 @export_range(500.0, 1000.0, 10.0) var preferred_distance_max: float = 850.0
@@ -26,6 +27,7 @@ signal destination_reached
 @onready var player: CharacterBody3D = get_node(player_path)
 @onready var camera: Camera3D = get_node(camera_path)
 @onready var terrain_manager: Node3D = get_node(terrain_manager_path)
+@onready var atmosphere: Node = get_node(atmosphere_path)
 
 var random := RandomNumberGenerator.new()
 var marker: Node3D
@@ -50,11 +52,18 @@ var current_direction_offset_degrees: float = 0.0
 var straight_destination_streak: int = 0
 var last_lateral_sign: float = 1.0
 var current_route_favors_launch: bool = false
+var signal_albedo := Color(0.78, 0.82, 0.75)
+var signal_emission := Color(0.67, 0.73, 0.72)
+var signal_alpha: float = 0.8
+var signal_base_emission: float = 1.45
+var signal_pulse_amount: float = 0.06
 
 
 func _ready() -> void:
 	random.seed = 91027
 	create_destination_visual()
+	atmosphere.connect("dimension_changed", _on_dimension_changed)
+	apply_dimension_signal_profile(atmosphere.call("get_current_dimension_id"))
 	previous_player_position = player.global_position
 	journey_heading = get_preferred_direction()
 	place_new_destination()
@@ -91,10 +100,10 @@ func create_destination_visual() -> void:
 	marker_material = StandardMaterial3D.new()
 	marker_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	marker_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	marker_material.albedo_color = Color(0.78, 0.82, 0.75, 0.8)
+	marker_material.albedo_color = Color(signal_albedo, signal_alpha)
 	marker_material.emission_enabled = true
-	marker_material.emission = Color(0.67, 0.73, 0.72)
-	marker_material.emission_energy_multiplier = 1.45
+	marker_material.emission = signal_emission
+	marker_material.emission_energy_multiplier = signal_base_emission
 
 	var ring_mesh := TorusMesh.new()
 	ring_mesh.inner_radius = 2.45
@@ -161,8 +170,9 @@ func place_new_destination() -> void:
 	response_time = 0.0
 	marker.visible = true
 	marker.scale = Vector3.ONE
-	marker_material.albedo_color.a = 0.8
-	marker_material.emission_energy_multiplier = 1.45
+	marker_material.albedo_color = Color(signal_albedo, signal_alpha)
+	marker_material.emission = signal_emission
+	marker_material.emission_energy_multiplier = signal_base_emission
 	select_composition()
 	current_route_favors_launch = random.randf() < launch_route_chance
 
@@ -473,12 +483,12 @@ func get_terrain_height(world_x: float, world_z: float) -> float:
 func update_destination_motion(delta: float) -> void:
 	marker.rotation.y += delta * 0.32
 	marker.position.y = destination_ground_height + height_above_ground + sin(animation_time * 1.25) * 0.45
-	var pulse: float = 1.0 + sin(animation_time * 1.8) * 0.06
+	var pulse: float = 1.0 + sin(animation_time * 1.8) * signal_pulse_amount
 	marker.scale = Vector3.ONE * pulse
 	var distance: float = get_destination_distance()
 	var lost_boost: float = clampf((distance - 220.0) / 500.0, 0.0, 1.0)
 	marker_material.emission_energy_multiplier = (
-		1.45 + lost_boost * 2.0 + sin(animation_time * 1.8) * 0.14
+		signal_base_emission + lost_boost * 2.0 + sin(animation_time * 1.8) * 0.14
 	)
 
 
@@ -496,11 +506,54 @@ func update_destination_response(delta: float) -> void:
 	var flash_scale: float = 1.0 + sin(progress * PI) * 0.75
 	marker.scale = Vector3.ONE * flash_scale
 	marker.rotation.y += delta * 1.8
-	marker_material.albedo_color.a = 0.8 * (1.0 - progress)
-	marker_material.emission_energy_multiplier = 1.45 + sin(progress * PI) * 1.8
+	marker_material.albedo_color.a = signal_alpha * (1.0 - progress)
+	marker_material.emission_energy_multiplier = signal_base_emission + sin(progress * PI) * 1.8
 
 	if progress >= 1.0:
 		place_new_destination()
+
+
+func _on_dimension_changed(dimension_id: StringName, _display_name: String) -> void:
+	apply_dimension_signal_profile(dimension_id)
+
+
+func apply_dimension_signal_profile(dimension_id: StringName) -> void:
+	match dimension_id:
+		&"pale_dawn":
+			signal_albedo = Color(0.78, 0.82, 0.75)
+			signal_emission = Color(0.67, 0.73, 0.72)
+			signal_alpha = 0.8
+			signal_base_emission = 1.35
+			signal_pulse_amount = 0.045
+		&"cold_overcast":
+			signal_albedo = Color(0.52, 0.62, 0.69)
+			signal_emission = Color(0.34, 0.5, 0.66)
+			signal_alpha = 0.74
+			signal_base_emission = 1.15
+			signal_pulse_amount = 0.035
+		&"golden_dissolve":
+			signal_albedo = Color(0.94, 0.76, 0.44)
+			signal_emission = Color(1.0, 0.58, 0.22)
+			signal_alpha = 0.86
+			signal_base_emission = 1.7
+			signal_pulse_amount = 0.07
+		&"blue_liminal_night":
+			signal_albedo = Color(0.55, 0.74, 1.0)
+			signal_emission = Color(0.28, 0.56, 1.0)
+			signal_alpha = 0.92
+			signal_base_emission = 2.2
+			signal_pulse_amount = 0.085
+		&"dust_haze_afternoon":
+			signal_albedo = Color(0.82, 0.7, 0.52)
+			signal_emission = Color(0.78, 0.53, 0.27)
+			signal_alpha = 0.84
+			signal_base_emission = 1.45
+			signal_pulse_amount = 0.05
+
+	if marker_material != null:
+		marker_material.albedo_color = Color(signal_albedo, signal_alpha)
+		marker_material.emission = signal_emission
+		marker_material.emission_energy_multiplier = signal_base_emission
 
 
 func get_destination_distance() -> float:

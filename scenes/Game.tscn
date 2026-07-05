@@ -172,6 +172,7 @@ script = ExtResource("6_destination")
 player_path = NodePath("../Player")
 camera_path = NodePath("../Player/CameraPivot/SpringArm3D/Camera3D")
 terrain_manager_path = NodePath("../TerrainManager")
+atmosphere_path = NodePath("../DreamAtmosphere")
 
 [node name="AudioManager" type="Node" parent="."]
 script = ExtResource("8_audio")
