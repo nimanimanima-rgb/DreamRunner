@@ -28,7 +28,6 @@ func _process(_delta: float) -> void:
 
 	var horizontal_speed := Vector2(player.velocity.x, player.velocity.z).length()
 	var movement_state := "Grounded" if player.is_on_floor() else "Airborne"
-	var sprinting := Input.is_action_pressed("sprint") and horizontal_speed > 0.1
 	var gliding := (
 		not player.is_on_floor()
 		and player.velocity.y < 0.0
@@ -82,8 +81,6 @@ func _process(_delta: float) -> void:
 	if player.is_on_floor():
 		if horizontal_speed < 0.1:
 			movement_mode = "Idle"
-		elif sprinting:
-			movement_mode = "Sprinting"
 		else:
 			movement_mode = "Running"
 
@@ -92,7 +89,6 @@ func _process(_delta: float) -> void:
 		+ "Speed: %5.1f m/s\n" % horizontal_speed
 		+ "State: %s\n" % movement_state
 		+ "Vertical velocity: %5.1f m/s\n" % player.velocity.y
-		+ "Sprinting: %s\n" % str(sprinting)
 		+ "Gliding: %s\n" % str(gliding)
 		+ "Mode: %s\n" % movement_mode
 		+ "Ground clearance: %4.1f m\n" % float(player.call("get_ground_clearance"))

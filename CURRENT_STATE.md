@@ -2,7 +2,7 @@
 
 ## Project summary
 
-DreamRunner is a browser-first third-person dream-running game built in Godot 4.7 with GDScript. Its core experience is fast, calm traversal through a procedural dream landscape: sprint, jump, glide, follow dream signals, and keep exploring without combat, timers, scoring pressure, or hard failure states. The current `Game.tscn` build is an MVP release candidate intended for approximately ten-minute playtest sessions.
+DreamRunner is a browser-first third-person dream-running game built in Godot 4.7 with GDScript. Its core experience is fast, calm traversal through a procedural dream landscape: run, jump, glide, follow dream signals, and keep exploring without combat, timers, scoring pressure, or hard failure states. The current `Game.tscn` build is an MVP release candidate intended for approximately ten-minute playtest sessions.
 
 ## Current main scene
 
@@ -15,7 +15,7 @@ DreamRunner is a browser-first third-person dream-running game built in Godot 4.
 Dream signal placement is flow-first but no longer linear: a persistent journey heading turns gently between destinations, while controlled lateral arcs create long, recoverable left/right variations without backtracking.
 
 - Third-person WASD movement with stable acceleration and deceleration.
-- High-speed sprinting with speed-based camera FOV.
+- High-speed running at the former 34 m/s sprint pace, with no modifier key required and speed-based camera FOV.
 - High jump, air control, and glide/float while descending.
 - Slope-aware movement with restrained uphill penalties and downhill boosts.
 - Smooth camera orbit, pitch limits, spring-arm collision, and interpolation-aware follow.
@@ -37,7 +37,7 @@ Dream signal placement is flow-first but no longer linear: a persistent journey 
 - Lightweight, non-colliding far proxies keep rare giant silhouettes visible beyond the full terrain streaming radius.
 - Scale variation, giant landmarks, and far silhouettes improve environmental readability while preserving open traversal space.
 - Giant trees, pillars, monoliths, horizon rings, and their far proxies now reuse cached dimension palettes: subdued in Waking, warm in Memory, weathered in Dust, drained in Dead/Empty, and cool-emissive in Liminal Night.
-- Spawn clearance and spacing rules preserve open sprint lanes near the starting area.
+- Spawn clearance and spacing rules preserve open running lanes near the starting area.
 - Centralized gentle canopy sway and landmark pulsing.
 - Lightweight dream atmosphere with 48 drifting/recycled motes rendered in one `MultiMesh`.
 - Five prototype dimension layers smoothly control sky, fog, ambient light, directional light, and mote color/intensity.
@@ -63,7 +63,7 @@ Dream signal placement is flow-first but no longer linear: a persistent journey 
 - `Q` shifts through Waking / Pale World, Dead / Empty World, Memory / Golden World, Liminal Night / Dream-Between, and Forgotten Road / Dust World.
 - Dimension changes use a brief 0.7-second color veil and quiet procedural tone while the existing atmosphere continues its smooth interpolation; player control is never blocked.
 - Readability tuning settles atmosphere changes over 6 seconds and protects signal, trace, and landmark contrast in the darker dimensions without increasing visual density.
-- Debug information includes FPS, movement state, speed, vertical velocity, sprint/glide state, mouse status, current chunk, active chunks, active props, giant forms, far silhouettes, dream motes, current dimension, destination distance, composition type, and placement mode. Audio dimension targets update only when the active layer changes rather than being rediscovered every frame.
+- Debug information includes FPS, movement state, speed, vertical velocity, glide state, mouse status, current chunk, active chunks, active props, giant forms, far silhouettes, dream motes, current dimension, destination distance, composition type, and placement mode. Audio dimension targets update only when the active layer changes rather than being rediscovered every frame.
 
 ## Current browser/export status
 
@@ -80,7 +80,7 @@ Dream signal placement is flow-first but no longer linear: a persistent journey 
 - `res://scenes/Game.tscn` - production playable scene and integration point for all current systems.
 - `res://scenes/Main.tscn` - preserved Movement Laboratory backup.
 - `res://scenes/ProceduralTest.tscn` - preserved procedural sandbox.
-- `res://scripts/player_controller.gd` - movement, sprint, jump, glide, slopes, camera, pointer lock, and reset.
+- `res://scripts/player_controller.gd` - high-speed movement, jump, glide, slopes, camera, pointer lock, and reset.
 - `res://scripts/terrain_chunk_manager.gd` - terrain generation, chunk streaming, props, collisions, shared materials, and environmental motion.
 - `res://scripts/dream_atmosphere.gd` - batched drifting dream motes and interpolated prototype dimension layers.
 - `res://scripts/dream_destination_manager.gd` - active destination placement, visual marker, trigger response, regeneration, and lost-player brightness.
@@ -95,12 +95,12 @@ Dream signal placement is flow-first but no longer linear: a persistent journey 
 
 ## Things that must not be broken
 
-- Stable movement feel, sprint speed, high jump, glide, air control, and slope behavior.
+- Stable 34 m/s running feel, high jump, glide, air control, and slope behavior.
 - Smooth camera follow, pitch limits, spring arm, FOV response, and jitter fixes.
 - Browser click-to-capture, `Esc` release, and click-to-recapture behavior.
 - `R` reset, start overlay, off-screen guidance, `F3` debug toggle, and `Q` dimension shifting.
 - Procedural terrain seams, collision orientation, deterministic generation, and chunk recycling.
-- Open sprint lanes and safe starting-area clearance.
+- Open running lanes and safe starting-area clearance.
 - Dream destination placement, triggering, regeneration, and guidance.
 - Batched mote rendering and browser-conscious performance.
 - `Game.tscn` as the project main scene; preserve both legacy scenes.

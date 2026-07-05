@@ -29,7 +29,7 @@ The current `Game.tscn` build is a stable Godot 4.7 browser-first playtest candi
 ## Sound / Ambience Pass 01
 
 - Added browser-unlocked procedural wind, distant tonal ambience, mood coloration, and restrained dream-signal resonance.
-- Sprinting and gliding gently strengthen the air layer; `M` toggles mute for testing.
+- High-speed running and gliding gently strengthen the air layer; `M` toggles mute for testing.
 
 ## Dimension System Foundation Pass 01
 

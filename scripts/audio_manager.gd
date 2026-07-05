@@ -132,8 +132,8 @@ func fill_ambience_buffer() -> void:
 	if ambience_playback == null:
 		return
 	var horizontal_speed: float = Vector2(player.velocity.x, player.velocity.z).length()
-	var sprint_speed: float = float(player.get("sprint_speed"))
-	var speed_blend: float = clampf(horizontal_speed / maxf(sprint_speed, 1.0), 0.0, 1.25)
+	var run_speed: float = float(player.get("run_speed"))
+	var speed_blend: float = clampf(horizontal_speed / maxf(run_speed, 1.0), 0.0, 1.25)
 	var glide_boost: float = 0.08 if bool(player.call("is_gliding")) else 0.0
 	var wind_level: float = current_wind_level + speed_blend * movement_wind_boost + glide_boost
 	for _frame in range(ambience_playback.get_frames_available()):

@@ -3,8 +3,7 @@ extends CharacterBody3D
 signal dream_entered
 
 @export_group("Movement")
-@export var walk_speed: float = 13.0
-@export var sprint_speed: float = 34.0
+@export var run_speed: float = 34.0
 @export var ground_acceleration: float = 58.0
 @export var air_acceleration: float = 10.0
 @export var ground_deceleration: float = 38.0
@@ -34,13 +33,10 @@ signal dream_entered
 
 @export_group("Procedural Visual Motion")
 @export_range(0.0, 0.12, 0.005) var run_bob_height: float = 0.035
-@export_range(0.0, 15.0, 0.5) var sprint_visual_lean_degrees: float = 7.0
-@export_range(5.0, 35.0, 1.0) var run_arm_swing_degrees: float = 20.0
-@export_range(15.0, 55.0, 1.0) var sprint_arm_swing_degrees: float = 38.0
-@export_range(5.0, 30.0, 1.0) var run_leg_swing_degrees: float = 18.0
-@export_range(15.0, 50.0, 1.0) var sprint_leg_swing_degrees: float = 34.0
-@export_range(2.0, 10.0, 0.25) var walk_stride_length: float = 5.0
-@export_range(3.0, 14.0, 0.25) var sprint_stride_length: float = 7.5
+@export_range(0.0, 15.0, 0.5) var run_visual_lean_degrees: float = 7.0
+@export_range(15.0, 55.0, 1.0) var run_arm_swing_degrees: float = 38.0
+@export_range(15.0, 50.0, 1.0) var run_leg_swing_degrees: float = 34.0
+@export_range(3.0, 14.0, 0.25) var run_stride_length: float = 7.5
 @export_range(0.5, 1.5, 0.05) var locomotion_cycle_multiplier: float = 1.0
 @export_range(20.0, 80.0, 1.0) var glide_arm_lift_degrees: float = 64.0
 @export_range(5.0, 45.0, 1.0) var glide_arm_open_degrees: float = 28.0
@@ -53,7 +49,7 @@ signal dream_entered
 @export_range(-80.0, 0.0, 1.0) var min_pitch_degrees: float = -35.0
 @export_range(0.0, 30.0, 1.0) var max_pitch_degrees: float = 4.0
 @export var normal_fov: float = 78.0
-@export var sprint_fov: float = 84.0
+@export var run_fov: float = 84.0
 @export var glide_fov: float = 86.0
 @export var fov_smoothing: float = 5.0
 @export var camera_vertical_smoothing: float = 7.0
@@ -202,8 +198,8 @@ func _process(delta: float) -> void:
 	camera_pivot.global_position = camera_position
 
 	var horizontal_speed := Vector2(velocity.x, velocity.z).length()
-	var is_sprinting := Input.is_action_pressed("sprint") and horizontal_speed > walk_speed
-	var target_fov := glide_fov if is_gliding() else (sprint_fov if is_sprinting else normal_fov)
+	var run_blend := clampf(horizontal_speed / maxf(run_speed, 0.1), 0.0, 1.0)
+	var target_fov := glide_fov if is_gliding() else lerpf(normal_fov, run_fov, run_blend)
 	var fov_weight := 1.0 - exp(-fov_smoothing * delta)
 	camera.fov = lerpf(camera.fov, target_fov, fov_weight)
 	update_visual_pose(delta)
@@ -213,7 +209,7 @@ func _physics_process(delta: float) -> void:
 	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	var movement_basis := Basis(Vector3.UP, yaw)
 	var move_dir := (movement_basis * Vector3(input_dir.x, 0.0, input_dir.y)).normalized()
-	var target_speed := sprint_speed if Input.is_action_pressed("sprint") else walk_speed
+	var target_speed := run_speed
 
 	var horizontal_velocity := Vector3(velocity.x, 0.0, velocity.z)
 	var desired_speed := target_speed
@@ -360,35 +356,22 @@ func update_character_motion(delta: float) -> void:
 	var horizontal_speed: float = Vector2(velocity.x, velocity.z).length()
 	var moving_on_ground: bool = is_on_floor() and horizontal_speed > 0.5
 	var gliding: bool = is_gliding()
-	var sprint_blend: float = clampf(
-		inverse_lerp(walk_speed, sprint_speed, horizontal_speed),
-		0.0,
-		1.0
-	)
+	var run_blend: float = clampf(horizontal_speed / maxf(run_speed, 0.1), 0.0, 1.0)
 	if moving_on_ground:
-		var stride_length: float = lerpf(
-			walk_stride_length,
-			sprint_stride_length,
-			sprint_blend
-		)
 		motion_phase += (
-			delta * horizontal_speed / maxf(stride_length, 0.1)
+			delta * horizontal_speed / maxf(run_stride_length, 0.1)
 			* TAU * locomotion_cycle_multiplier
 		)
 	elif is_on_floor():
 		motion_phase += delta * 1.15
 
 	var motion_weight: float = (
-		clampf(horizontal_speed / maxf(walk_speed, 0.1), 0.0, 1.0)
+		run_blend
 		if moving_on_ground
 		else 0.0
 	)
-	var arm_amplitude: float = deg_to_rad(
-		lerpf(run_arm_swing_degrees, sprint_arm_swing_degrees, sprint_blend)
-	) * motion_weight
-	var leg_amplitude: float = deg_to_rad(
-		lerpf(run_leg_swing_degrees, sprint_leg_swing_degrees, sprint_blend)
-	) * motion_weight
+	var arm_amplitude: float = deg_to_rad(run_arm_swing_degrees) * motion_weight
+	var leg_amplitude: float = deg_to_rad(run_leg_swing_degrees) * motion_weight
 	var target_arm_swing: float = sin(motion_phase) * arm_amplitude
 	var target_leg_swing: float = sin(motion_phase) * leg_amplitude
 	if not moving_on_ground:
@@ -404,7 +387,7 @@ func update_character_motion(delta: float) -> void:
 	var target_bob: float = sin(motion_phase * 2.0) * run_bob_height * motion_weight
 	if not moving_on_ground:
 		target_bob = sin(motion_phase) * 0.012 if is_on_floor() else 0.0
-	var target_lean: float = -deg_to_rad(sprint_visual_lean_degrees) * sprint_blend
+	var target_lean: float = -deg_to_rad(run_visual_lean_degrees) * run_blend
 	var target_stretch: float = 1.0
 	if not is_on_floor() and not gliding:
 		target_lean = -deg_to_rad(4.0)
