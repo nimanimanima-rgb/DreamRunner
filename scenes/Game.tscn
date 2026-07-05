@@ -362,9 +362,23 @@ theme_override_colors/font_color = Color(0.82, 0.88, 0.95, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
 theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1
-theme_override_font_sizes/font_size = 16
-text = "WASD  move     Mouse  look
-Space  jump / glide
-Q  shift dimension
-R  reset     M  mute     Esc  pause / release mouse"
+theme_override_constants/line_spacing = 5
+theme_override_font_sizes/font_size = 17
+text = "WASD  —  Move        Mouse  —  Look
+Space  —  Jump
+Hold Space in air  —  Glide
+Q  —  Shift Dimension"
+horizontal_alignment = 1
+
+[node name="UtilityControls" type="Label" parent="StartOverlay/CenterContainer/Message"]
+mouse_filter = 2
+layout_mode = 2
+theme_override_colors/font_color = Color(0.68, 0.76, 0.86, 0.92)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_constants/line_spacing = 3
+theme_override_font_sizes/font_size = 15
+text = "Esc  —  Pause / Release Mouse
+M  —  Mute        R  —  Reset"
 horizontal_alignment = 1
