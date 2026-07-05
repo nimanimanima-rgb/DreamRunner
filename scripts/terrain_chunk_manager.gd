@@ -27,6 +27,11 @@ extends Node3D
 @export var minimum_prop_spacing: float = 12.0
 @export var spawn_clear_radius: float = 55.0
 
+@export_group("Passive Story Traces")
+@export var atmosphere_path: NodePath
+@export_range(0.0, 0.2, 0.005) var story_trace_chance: float = 0.05
+@export var story_trace_clearance: float = 28.0
+
 @export_group("Giant Revelation Landmarks")
 @export_range(2, 8, 1) var giant_region_size: int = 4
 @export_range(0.0, 1.0, 0.05) var giant_region_chance: float = 0.5
@@ -61,6 +66,7 @@ extends Node3D
 @export var landmark_color := Color(0.4, 0.43, 0.49)
 
 @onready var player: CharacterBody3D = get_node(player_path)
+@onready var atmosphere: Node = get_node_or_null(atmosphere_path)
 
 var active_chunks: Dictionary = {}
 var far_landmark_proxies: Dictionary = {}
@@ -80,6 +86,9 @@ var landmark_material: StandardMaterial3D
 var pale_stone_material: StandardMaterial3D
 var dark_stone_material: StandardMaterial3D
 var faded_ring_material: StandardMaterial3D
+var trace_material: StandardMaterial3D
+var trace_dark_material: StandardMaterial3D
+var trace_light_material: StandardMaterial3D
 var foliage_materials: Array[StandardMaterial3D] = []
 var rock_materials: Array[StandardMaterial3D] = []
 var landmark_materials: Array[StandardMaterial3D] = []
@@ -94,6 +103,9 @@ var giant_pillar_mesh: BoxMesh
 var giant_monolith_mesh: BoxMesh
 var giant_ring_mesh: TorusMesh
 var giant_inner_ring_mesh: TorusMesh
+var trace_box_mesh: BoxMesh
+var trace_pole_mesh: CylinderMesh
+var trace_light_mesh: SphereMesh
 var trunk_shape: CylinderShape3D
 var rock_shape: BoxShape3D
 var landmark_shape: BoxShape3D
@@ -107,11 +119,15 @@ var active_prop_count: int = 0
 var active_giant_landmark_count: int = 0
 var animated_foliage: Array[Dictionary] = []
 var animated_landmarks: Array[Dictionary] = []
+var story_traces: Array[Node3D] = []
+var current_dimension_id: StringName = &"pale_dawn"
 var animation_time: float = 0.0
 
 
 func _ready() -> void:
 	create_shared_resources()
+	if atmosphere != null:
+		atmosphere.connect("dimension_changed", _on_dimension_changed)
 	current_chunk = world_to_chunk(player.global_position)
 	update_chunks()
 
@@ -164,6 +180,10 @@ func create_shared_resources() -> void:
 	faded_ring_material.emission_enabled = true
 	faded_ring_material.emission = Color(0.34, 0.32, 0.26)
 	faded_ring_material.emission_energy_multiplier = 0.14
+	trace_material = create_grass_material(Color(0.31, 0.29, 0.25))
+	trace_dark_material = create_grass_material(Color(0.19, 0.19, 0.18))
+	trace_light_material = create_landmark_material(Color(0.78, 0.58, 0.3))
+	trace_light_material.emission_energy_multiplier = 0.75
 	foliage_materials = [
 		foliage_material,
 		create_grass_material(foliage_color.lightened(0.08)),
@@ -230,6 +250,21 @@ func create_shared_resources() -> void:
 	giant_inner_ring_mesh.outer_radius = 48.0
 	giant_inner_ring_mesh.rings = 40
 	giant_inner_ring_mesh.ring_segments = 8
+
+	trace_box_mesh = BoxMesh.new()
+	trace_box_mesh.size = Vector3.ONE
+
+	trace_pole_mesh = CylinderMesh.new()
+	trace_pole_mesh.top_radius = 0.5
+	trace_pole_mesh.bottom_radius = 0.65
+	trace_pole_mesh.height = 1.0
+	trace_pole_mesh.radial_segments = 6
+
+	trace_light_mesh = SphereMesh.new()
+	trace_light_mesh.radius = 0.5
+	trace_light_mesh.height = 1.0
+	trace_light_mesh.radial_segments = 8
+	trace_light_mesh.rings = 4
 
 	trunk_shape = CylinderShape3D.new()
 	trunk_shape.radius = 0.4
@@ -427,6 +462,18 @@ func create_chunk_props(chunk: StaticBody3D, coordinate: Vector2i) -> Vector2i:
 			placed_positions.append(Vector2(landmark_position.x, landmark_position.z))
 			prop_count += 1
 
+	# Human traces are deliberately rarer than natural props: at the default
+	# active radius, only about one appears across the streamed area at a time.
+	if random.randf() < story_trace_chance:
+		var trace_position := get_random_prop_position(random, coordinate, placed_positions)
+		if (
+			is_spawn_area_clear(coordinate, trace_position)
+			and is_prop_spacing_clear(trace_position, placed_positions, story_trace_clearance)
+		):
+			create_story_trace(chunk, trace_position, random)
+			placed_positions.append(Vector2(trace_position.x, trace_position.z))
+			prop_count += 1
+
 	if is_giant_landmark_chunk(coordinate):
 		var force_placement: bool = is_guaranteed_ring_chunk(coordinate)
 		var giant_random: RandomNumberGenerator = create_giant_instance_random(coordinate)
@@ -443,6 +490,99 @@ func create_chunk_props(chunk: StaticBody3D, coordinate: Vector2i) -> Vector2i:
 			giant_count = 1
 
 	return Vector2i(prop_count, giant_count)
+
+
+func create_story_trace(
+	chunk: StaticBody3D,
+	base_position: Vector3,
+	random: RandomNumberGenerator
+) -> void:
+	var trace := Node3D.new()
+	trace.position = base_position
+	trace.rotation.y = random.randf_range(-PI, PI)
+
+	var trace_kind := random.randi_range(0, 2)
+	match trace_kind:
+		0:
+			trace.name = "StoryTrace_RoadsideShelter"
+			trace.set_meta("dimension_ids", PackedStringArray(["pale_dawn", "golden_dissolve"]))
+			build_roadside_shelter(trace)
+		1:
+			trace.name = "StoryTrace_DeadUtilityPole"
+			trace.set_meta("dimension_ids", PackedStringArray(["pale_dawn", "dust_haze_afternoon"]))
+			build_dead_utility_pole(trace)
+		_:
+			trace.name = "StoryTrace_RuinedFrame"
+			trace.set_meta("dimension_ids", PackedStringArray(["pale_dawn", "cold_overcast"]))
+			build_ruined_frame(trace)
+
+	# These first traces are intentionally non-colliding. Their narrow pieces
+	# would create high-speed snag points without adding useful traversal choices.
+	chunk.add_child(trace)
+	story_traces.append(trace)
+	update_story_trace_visibility(trace)
+
+
+func build_roadside_shelter(trace: Node3D) -> void:
+	add_trace_box(trace, Vector3(0.0, 2.1, 0.75), Vector3(7.0, 4.2, 0.35), trace_material)
+	add_trace_box(trace, Vector3(0.0, 4.35, 0.0), Vector3(7.5, 0.3, 2.0), trace_dark_material)
+	add_trace_box(trace, Vector3(-3.25, 2.0, -0.1), Vector3(0.3, 4.0, 1.7), trace_dark_material)
+	add_trace_box(trace, Vector3(0.8, 0.55, 0.15), Vector3(3.5, 0.35, 0.65), trace_material)
+	var light := MeshInstance3D.new()
+	light.name = "MemoryLight"
+	light.position = Vector3(2.45, 3.35, 0.48)
+	light.scale = Vector3.ONE * 0.28
+	light.mesh = trace_light_mesh
+	light.material_override = trace_light_material
+	trace.add_child(light)
+
+
+func build_dead_utility_pole(trace: Node3D) -> void:
+	var pole := MeshInstance3D.new()
+	pole.name = "Pole"
+	pole.position = Vector3(0.0, 4.5, 0.0)
+	pole.rotation.z = 0.035
+	pole.scale = Vector3(0.42, 9.0, 0.42)
+	pole.mesh = trace_pole_mesh
+	pole.material_override = trace_dark_material
+	trace.add_child(pole)
+	add_trace_box(trace, Vector3(0.0, 8.25, 0.0), Vector3(4.8, 0.28, 0.3), trace_dark_material)
+	add_trace_box(trace, Vector3(1.8, 1.15, 0.35), Vector3(0.32, 2.3, 1.3), trace_material, -0.16)
+
+
+func build_ruined_frame(trace: Node3D) -> void:
+	add_trace_box(trace, Vector3(-2.8, 2.6, 0.0), Vector3(0.5, 5.2, 0.7), trace_material, -0.04)
+	add_trace_box(trace, Vector3(2.8, 1.85, 0.0), Vector3(0.5, 3.7, 0.7), trace_material, 0.08)
+	add_trace_box(trace, Vector3(-0.45, 5.05, 0.0), Vector3(5.2, 0.45, 0.7), trace_material, -0.06)
+	add_trace_box(trace, Vector3(1.75, 0.35, 0.0), Vector3(2.4, 0.7, 0.8), trace_dark_material, 0.12)
+
+
+func add_trace_box(
+	parent: Node3D,
+	position: Vector3,
+	size: Vector3,
+	material: StandardMaterial3D,
+	z_rotation: float = 0.0
+) -> void:
+	var part := MeshInstance3D.new()
+	part.position = position
+	part.rotation.z = z_rotation
+	part.scale = size
+	part.mesh = trace_box_mesh
+	part.material_override = material
+	parent.add_child(part)
+
+
+func _on_dimension_changed(dimension_id: StringName, _display_name: String) -> void:
+	current_dimension_id = dimension_id
+	for trace in story_traces:
+		if is_instance_valid(trace):
+			update_story_trace_visibility(trace)
+
+
+func update_story_trace_visibility(trace: Node3D) -> void:
+	var dimension_ids: PackedStringArray = trace.get_meta("dimension_ids", PackedStringArray())
+	trace.visible = dimension_ids.has(String(current_dimension_id))
 
 
 func get_chunk_prop_seed(coordinate: Vector2i) -> int:
@@ -1262,12 +1402,20 @@ func generate_chunk_mesh(coordinate: Vector2i) -> ArrayMesh:
 func remove_chunk(coordinate: Vector2i) -> void:
 	var chunk: StaticBody3D = active_chunks[coordinate]
 	remove_chunk_animation_entries(chunk)
+	remove_chunk_story_traces(chunk)
 	active_prop_count -= chunk_prop_counts.get(coordinate, 0)
 	active_giant_landmark_count -= chunk_giant_counts.get(coordinate, 0)
 	chunk_prop_counts.erase(coordinate)
 	chunk_giant_counts.erase(coordinate)
 	active_chunks.erase(coordinate)
 	chunk.queue_free()
+
+
+func remove_chunk_story_traces(chunk: StaticBody3D) -> void:
+	for index in range(story_traces.size() - 1, -1, -1):
+		var trace := story_traces[index]
+		if not is_instance_valid(trace) or chunk.is_ancestor_of(trace):
+			story_traces.remove_at(index)
 
 
 func remove_chunk_animation_entries(chunk: StaticBody3D) -> void:
@@ -1292,6 +1440,14 @@ func get_active_chunk_count() -> int:
 
 func get_active_prop_count() -> int:
 	return active_prop_count
+
+
+func get_visible_story_trace_count() -> int:
+	var visible_count := 0
+	for trace in story_traces:
+		if is_instance_valid(trace) and trace.visible:
+			visible_count += 1
+	return visible_count
 
 
 func get_active_giant_landmark_count() -> int:

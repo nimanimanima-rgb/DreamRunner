@@ -149,6 +149,7 @@ fov = 78.0
 [node name="TerrainManager" type="Node3D" parent="."]
 script = ExtResource("2_terrain")
 player_path = NodePath("../Player")
+atmosphere_path = NodePath("../DreamAtmosphere")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.8191522, 0.40557957, -0.4055797, 0, 0.7071069, 0.70710665, 0.5735762, -0.5792279, 0.57922816, 0, 0, 0)
