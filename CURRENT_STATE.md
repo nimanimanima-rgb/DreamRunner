@@ -45,6 +45,7 @@ Dream signal placement is flow-first but no longer linear: a persistent journey 
 - Very rare primitive human traces now use clearer travel-worn silhouettes: platform shelters with benches and route signs, dead utility poles with broken line hardware and markers, and stripped roadside frames with partial walls. Dimension changes apply cached visibility and material profiles: ordinary in Waking, warm shelters in Memory, dusty poles in Forgotten Road, cold ruins in Dead/Empty, and faint silhouettes in Liminal Night. They remain non-colliding to preserve high-speed flow.
 - Passive traces use their rare 5% per-chunk chance for normal play; an exported multiplier remains available for focused testing.
 - One active primitive-based dream signal with terrain-aware placement, slope checks, glow, pulse, orb, rings, and a long-distance beam.
+- The first signal uses a restrained onboarding profile: 380–460 m away, close to the opening view, launch-route favored, and slightly clearer until reached. Later destinations retain the full varied journey rules.
 - The dream signal responds to dimensions with restrained color, opacity, glow, pulse, and procedural resonance profiles while preserving long-distance readability.
 - Dream signals use episodic composition templates to favor ridge reveals, solitary giants, horizon calls, and open liminal clearings without adding props.
 - Destination placement is flow-first: long-range signals favor the player’s travel heading, reject nearby/backtracking candidates, and use quiet forward passages most often.

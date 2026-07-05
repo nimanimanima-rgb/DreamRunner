@@ -24,6 +24,12 @@ signal destination_reached
 @export_range(0.0, 1.0, 0.05) var revelation_composition_chance: float = 0.3
 @export_range(0.0, 0.5, 0.05) var launch_route_chance: float = 0.25
 
+@export_group("First Signal Onboarding")
+@export_range(300.0, 600.0, 10.0) var first_signal_distance_min: float = 380.0
+@export_range(350.0, 700.0, 10.0) var first_signal_distance_max: float = 460.0
+@export_range(5.0, 30.0, 1.0) var first_signal_cone_degrees: float = 12.0
+@export_range(0.0, 1.0, 0.05) var first_signal_emission_boost: float = 0.45
+
 @onready var player: CharacterBody3D = get_node(player_path)
 @onready var camera: Camera3D = get_node(camera_path)
 @onready var terrain_manager: Node3D = get_node(terrain_manager_path)
@@ -57,6 +63,7 @@ var signal_emission := Color(0.67, 0.73, 0.72)
 var signal_alpha: float = 0.8
 var signal_base_emission: float = 1.45
 var signal_pulse_amount: float = 0.06
+var placing_first_destination: bool = false
 
 
 func _ready() -> void:
@@ -166,6 +173,7 @@ func create_destination_visual() -> void:
 func place_new_destination() -> void:
 	if has_active_destination:
 		last_destination_position = marker.global_position
+	placing_first_destination = destinations_reached == 0
 	is_resolving = false
 	response_time = 0.0
 	marker.visible = true
@@ -173,8 +181,16 @@ func place_new_destination() -> void:
 	marker_material.albedo_color = Color(signal_albedo, signal_alpha)
 	marker_material.emission = signal_emission
 	marker_material.emission_energy_multiplier = signal_base_emission
-	select_composition()
-	current_route_favors_launch = random.randf() < launch_route_chance
+	if placing_first_destination:
+		# The opening call stays close to the initial view and quietly favors a
+		# traversable approach. Later signals return to the full journey grammar.
+		previous_composition_name = current_composition_name
+		current_composition_name = "Quiet Passage"
+		composition_giant_position = Vector3.INF
+		current_route_favors_launch = true
+	else:
+		select_composition()
+		current_route_favors_launch = random.randf() < launch_route_chance
 
 	var chosen_position: Vector3 = find_destination_position()
 	destination_ground_height = chosen_position.y
@@ -184,7 +200,9 @@ func place_new_destination() -> void:
 
 func find_destination_position() -> Vector3:
 	var forward: Vector3 = journey_heading
-	current_destination_is_far = random.randf() < far_destination_chance
+	current_destination_is_far = (
+		false if placing_first_destination else random.randf() < far_destination_chance
+	)
 	if current_composition_name == "Horizon Call":
 		current_destination_is_far = random.randf() < 0.35
 
@@ -207,9 +225,15 @@ func find_destination_position() -> Vector3:
 		return fallback_position
 
 	placement_mode = "Direct Fallback"
-	var direct_distance: float = preferred_distance_min
+	var direct_distance: float = (
+		(first_signal_distance_min + first_signal_distance_max) * 0.5
+		if placing_first_destination
+		else preferred_distance_min
+	)
 	var direct_position := player.global_position + forward * direct_distance
 	if (
+		not placing_first_destination
+		and
 		last_destination_position != Vector3.INF
 		and horizontal_distance(direct_position, last_destination_position)
 		< previous_destination_clearance
@@ -245,6 +269,8 @@ func find_best_forward_candidate(
 		if has_travel_direction and last_travel_direction.dot(candidate_direction) < cos(deg_to_rad(85.0)):
 			continue
 		if (
+			not placing_first_destination
+			and
 			last_destination_position != Vector3.INF
 			and horizontal_distance(candidate, last_destination_position)
 			< previous_destination_clearance
@@ -319,7 +345,10 @@ func is_giant_ahead(forward: Vector3) -> bool:
 func create_forward_candidate(forward: Vector3, half_angle_radians: float) -> Vector3:
 	var minimum_candidate_distance: float = preferred_distance_min
 	var maximum_candidate_distance: float = preferred_distance_max
-	if current_destination_is_far:
+	if placing_first_destination:
+		minimum_candidate_distance = first_signal_distance_min
+		maximum_candidate_distance = first_signal_distance_max
+	elif current_destination_is_far:
 		minimum_candidate_distance = far_distance_min
 		maximum_candidate_distance = far_distance_max
 	elif current_composition_name == "Ridge Reveal":
@@ -333,9 +362,15 @@ func create_forward_candidate(forward: Vector3, half_angle_radians: float) -> Ve
 		maximum_candidate_distance = 900.0
 
 	var maximum_offset: float = minf(half_angle_radians, deg_to_rad(lateral_offset_max_degrees))
-	if random.randf() < wide_lateral_chance:
+	if placing_first_destination:
+		maximum_offset = minf(maximum_offset, deg_to_rad(first_signal_cone_degrees))
+	elif random.randf() < wide_lateral_chance:
 		maximum_offset = minf(half_angle_radians, deg_to_rad(wide_lateral_offset_degrees))
-	var minimum_offset: float = deg_to_rad(32.0 if straight_destination_streak >= 2 else lateral_offset_min_degrees)
+	var minimum_offset: float = (
+		0.0
+		if placing_first_destination
+		else deg_to_rad(32.0 if straight_destination_streak >= 2 else lateral_offset_min_degrees)
+	)
 	minimum_offset = minf(minimum_offset, maximum_offset)
 	var lateral_sign: float = -1.0 if random.randf() < 0.5 else 1.0
 	if random.randf() < 0.65:
@@ -487,8 +522,12 @@ func update_destination_motion(delta: float) -> void:
 	marker.scale = Vector3.ONE * pulse
 	var distance: float = get_destination_distance()
 	var lost_boost: float = clampf((distance - 220.0) / 500.0, 0.0, 1.0)
+	var onboarding_boost: float = first_signal_emission_boost if destinations_reached == 0 else 0.0
 	marker_material.emission_energy_multiplier = (
-		signal_base_emission + lost_boost * 2.0 + sin(animation_time * 1.8) * 0.14
+		signal_base_emission
+		+ onboarding_boost
+		+ lost_boost * 2.0
+		+ sin(animation_time * 1.8) * 0.14
 	)
 
 
