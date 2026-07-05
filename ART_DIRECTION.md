@@ -476,64 +476,79 @@ Something visible very far away:
 
 The player should want to run toward it.
 
-## Environmental Mood States
+## Dimension Layers, Not Weather Presets
 
-DreamRunner should eventually support mood states instead of traditional biomes.
+The current mood states should be treated as prototypes for parallel dimensions or layers of reality, not simply sunset, night, fog, or weather presets.
 
-Potential mood states:
+The terrain may remain physically similar while its meaning, atmosphere, objects, and emotional tone change. The world should feel like one place seen through multiple states of being.
 
-### Pale Dawn
+`F4` mood cycling is the current debug version of this idea. It proves atmospheric contrast; it is not the final dimension-shifting system.
 
-- soft blue light
-- low fog
-- quiet atmosphere
-- faint pink horizon
-- gentle motes
+## Same World, Different Reality
 
-### Cold Overcast
+The same hill, road, tree, ruin, signal, or landmark may reveal a different truth in each layer.
 
-- heavy sky
-- muted colors
-- large cloud mass feeling
-- stronger wind
-- player feels small
+A monolith in one layer might be a ruin, tower, shadow, absence, or memory in another. A road may disappear but leave lights behind. A shelter may look abandoned in one reality and recently occupied in another.
 
-### Golden Dissolve
+These changes must not feel like random reskins. They should feel like hidden truths becoming visible.
 
-- rare warm light
-- pale gold haze
-- increased sense of revelation
-- should not be overused
+## Passive Storytelling
 
-### Blue Liminal Night
+Story should be uncovered through environment, repetition, transformation, distance, sound, symbols, and absence.
 
-- cold dark blue
-- faint particles
-- distant signals more visible
-- silence and scale
+Prefer environmental traces:
 
-### Dust Haze Afternoon
+- roads
+- shelters
+- utility poles and dead power lines
+- abandoned stations
+- ruins
+- repeated symbols
+- distant lights
+- objects that change or vanish between dimensions
 
-- washed colors
-- warm air
-- far distance softened
-- lonely travel feeling
+Avoid exposition-heavy dialogue, lore dumps, and dependence on cutscenes. The player should feel they are discovering a story, not being told one.
 
-### Still Air Revelation
+## Human Traces and Liminal Memory
 
-- reduced motion
-- quieter sound
-- heightened scale
-- one strong composition appears
+DreamRunner should not drift into generic fantasy. Sparse human traces can give the world specificity and memory:
 
-Mood states should affect:
-- sky color
-- fog color
-- fog density
-- ambient light
-- directional light
-- particle/mote intensity
-- possibly sound later
+- lonely roadside structures
+- old travel shelters
+- dead power lines
+- tiny lights at impossible distances
+- bus-station / 4 AM travel energy
+- abandoned markers of passage
+
+These traces should remain rare and meaningful. They are evidence, not clutter; passage, not settlement.
+
+## Possible Dimension Identities
+
+These are conceptual examples, not final names or a required set:
+
+- **Waking / Pale World:** breathable, almost real, before revelation.
+- **Dead / Empty World:** colder, stripped, silent, abandoned.
+- **Memory / Golden World:** warm, nostalgic, marked by human traces, lights, and lost roads.
+- **Liminal Night / Dream-Between:** darker, sacred, watched, and impossibly large.
+- **Forgotten Road / Dust World:** dry, lonely, wind-worn, with roadside remnants.
+
+## Dimension Design Implications
+
+The current mood system may later evolve into dimension shifting.
+
+Early implementation should stay simple: sky, fog, palette, light, and audio. Later passes may add dimension-specific object visibility, landmark transformations, sound changes, story fragments, and gameplay consequences.
+
+Do not overbuild this early. The current MVP remains focused on movement, vastness, gliding, signals, scale, atmosphere, and browser performance.
+
+Across every layer, preserve the existing philosophy:
+
+- magic is episodic, not constant
+- magic is composition, not decoration
+- ordinary matter becomes transparent
+- sparse, not empty
+- scale must humble the player
+- avoid generic fantasy and clutter
+- avoid neon magical effects everywhere
 
 ## Revelation Events
 
