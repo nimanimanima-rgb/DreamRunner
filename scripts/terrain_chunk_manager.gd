@@ -606,14 +606,22 @@ func create_story_trace(
 
 
 func build_roadside_shelter(trace: Node3D) -> void:
-	add_trace_box(trace, Vector3(0.0, 2.1, 0.75), Vector3(7.0, 4.2, 0.35), trace_material)
-	add_trace_box(trace, Vector3(0.0, 4.35, 0.0), Vector3(7.5, 0.3, 2.0), trace_dark_material)
-	add_trace_box(trace, Vector3(-3.25, 2.0, -0.1), Vector3(0.3, 4.0, 1.7), trace_dark_material)
-	add_trace_box(trace, Vector3(0.8, 0.55, 0.15), Vector3(3.5, 0.35, 0.65), trace_material)
+	# A broad platform, open front, bench, and separate route marker make this
+	# read as a forgotten travel stop rather than an abstract stack of slabs.
+	add_trace_box(trace, Vector3(0.0, 0.12, 0.0), Vector3(8.4, 0.24, 3.1), trace_dark_material)
+	add_trace_box(trace, Vector3(0.0, 2.25, 1.05), Vector3(7.2, 4.1, 0.3), trace_material)
+	add_trace_box(trace, Vector3(0.0, 4.48, 0.0), Vector3(8.0, 0.34, 2.8), trace_dark_material)
+	add_trace_box(trace, Vector3(-3.55, 2.2, 0.2), Vector3(0.32, 4.0, 1.9), trace_dark_material)
+	add_trace_box(trace, Vector3(3.55, 2.2, 0.2), Vector3(0.32, 4.0, 1.9), trace_dark_material)
+	add_trace_box(trace, Vector3(0.5, 0.68, 0.25), Vector3(4.4, 0.34, 0.78), trace_material)
+	add_trace_box(trace, Vector3(-1.0, 0.38, 0.25), Vector3(0.22, 0.55, 0.55), trace_dark_material)
+	add_trace_box(trace, Vector3(2.0, 0.38, 0.25), Vector3(0.22, 0.55, 0.55), trace_dark_material)
+	add_trace_box(trace, Vector3(4.35, 1.6, 0.4), Vector3(0.22, 3.2, 0.22), trace_dark_material, 0.035)
+	add_trace_box(trace, Vector3(4.25, 3.18, 0.4), Vector3(1.0, 0.72, 0.2), trace_material, -0.08)
 	var light := MeshInstance3D.new()
 	light.name = "MemoryLight"
-	light.position = Vector3(2.45, 3.35, 0.48)
-	light.scale = Vector3.ONE * 0.28
+	light.position = Vector3(2.45, 3.55, 0.78)
+	light.scale = Vector3.ONE * 0.32
 	light.mesh = trace_light_mesh
 	light.material_override = trace_light_material
 	light.set_meta("trace_light", true)
@@ -623,21 +631,37 @@ func build_roadside_shelter(trace: Node3D) -> void:
 func build_dead_utility_pole(trace: Node3D) -> void:
 	var pole := MeshInstance3D.new()
 	pole.name = "Pole"
-	pole.position = Vector3(0.0, 4.5, 0.0)
+	pole.position = Vector3(0.0, 4.8, 0.0)
 	pole.rotation.z = 0.035
-	pole.scale = Vector3(0.42, 9.0, 0.42)
+	pole.scale = Vector3(0.44, 9.6, 0.44)
 	pole.mesh = trace_pole_mesh
 	pole.material_override = trace_dark_material
 	pole.set_meta("dark_part", true)
 	trace.add_child(pole)
-	add_trace_box(trace, Vector3(0.0, 8.25, 0.0), Vector3(4.8, 0.28, 0.3), trace_dark_material)
-	add_trace_box(trace, Vector3(1.8, 1.15, 0.35), Vector3(0.32, 2.3, 1.3), trace_material, -0.16)
+	# Twin crossarms, insulators, and short broken drops preserve the dead-line
+	# silhouette without drawing long wires across streamed chunks.
+	add_trace_box(trace, Vector3(0.0, 8.65, 0.0), Vector3(5.6, 0.3, 0.34), trace_dark_material)
+	add_trace_box(trace, Vector3(0.0, 7.92, 0.0), Vector3(3.5, 0.24, 0.3), trace_dark_material)
+	for insulator_x in [-2.05, 0.0, 2.05]:
+		add_trace_box(
+			trace, Vector3(insulator_x, 8.98, 0.0), Vector3(0.24, 0.65, 0.24), trace_material
+		)
+	add_trace_box(trace, Vector3(-2.15, 7.72, 0.0), Vector3(0.09, 1.35, 0.09), trace_dark_material, 0.12)
+	add_trace_box(trace, Vector3(2.15, 7.78, 0.0), Vector3(0.09, 1.2, 0.09), trace_dark_material, -0.16)
+	add_trace_box(trace, Vector3(2.15, 1.35, 0.35), Vector3(0.3, 2.7, 0.3), trace_material, -0.16)
+	add_trace_box(trace, Vector3(1.95, 2.55, 0.35), Vector3(1.15, 0.78, 0.22), trace_material, -0.22)
 
 
 func build_ruined_frame(trace: Node3D) -> void:
+	# The platform and broken wall make this feel like a stripped roadside room
+	# or station remnant, rather than a freestanding fantasy arch.
+	add_trace_box(trace, Vector3(0.0, 0.13, 0.0), Vector3(7.4, 0.26, 2.4), trace_dark_material)
 	add_trace_box(trace, Vector3(-2.8, 2.6, 0.0), Vector3(0.5, 5.2, 0.7), trace_material, -0.04)
 	add_trace_box(trace, Vector3(2.8, 1.85, 0.0), Vector3(0.5, 3.7, 0.7), trace_material, 0.08)
 	add_trace_box(trace, Vector3(-0.45, 5.05, 0.0), Vector3(5.2, 0.45, 0.7), trace_material, -0.06)
+	add_trace_box(trace, Vector3(-1.85, 1.65, 0.0), Vector3(1.7, 2.7, 0.5), trace_material, -0.025)
+	add_trace_box(trace, Vector3(1.1, 1.0, 0.0), Vector3(2.7, 0.32, 0.58), trace_material, 0.04)
+	add_trace_box(trace, Vector3(-0.2, 4.45, 0.05), Vector3(1.5, 0.48, 0.22), trace_dark_material, -0.08)
 	add_trace_box(trace, Vector3(1.75, 0.35, 0.0), Vector3(2.4, 0.7, 0.8), trace_dark_material, 0.12)
 
 
