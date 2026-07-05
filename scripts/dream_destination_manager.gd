@@ -527,9 +527,9 @@ func apply_dimension_signal_profile(dimension_id: StringName) -> void:
 			signal_pulse_amount = 0.045
 		&"cold_overcast":
 			signal_albedo = Color(0.52, 0.62, 0.69)
-			signal_emission = Color(0.34, 0.5, 0.66)
-			signal_alpha = 0.74
-			signal_base_emission = 1.15
+			signal_emission = Color(0.38, 0.55, 0.72)
+			signal_alpha = 0.78
+			signal_base_emission = 1.3
 			signal_pulse_amount = 0.035
 		&"golden_dissolve":
 			signal_albedo = Color(0.94, 0.76, 0.44)

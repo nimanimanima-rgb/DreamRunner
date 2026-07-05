@@ -27,7 +27,7 @@ class DimensionLayer:
 @export_range(8.0, 80.0, 1.0) var spawn_radius: float = 34.0
 @export_range(0.05, 2.0, 0.05) var drift_speed: float = 0.35
 @export_range(2.0, 30.0, 1.0) var vertical_range: float = 14.0
-@export_range(1.0, 30.0, 0.5) var dimension_transition_seconds: float = 8.0
+@export_range(1.0, 30.0, 0.5) var dimension_transition_seconds: float = 6.0
 
 @onready var player: CharacterBody3D = get_node(player_path)
 @onready var world_environment_node: WorldEnvironment = get_node(world_environment_path)

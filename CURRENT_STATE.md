@@ -62,6 +62,7 @@ Dream signal placement is flow-first but no longer linear: a persistent journey 
 - Debug HUD toggled with `F3`; hidden by default for a cleaner presentation.
 - `Q` shifts through Waking / Pale World, Dead / Empty World, Memory / Golden World, Liminal Night / Dream-Between, and Forgotten Road / Dust World.
 - Dimension changes use a brief 0.7-second color veil and quiet procedural tone while the existing atmosphere continues its smooth interpolation; player control is never blocked.
+- Readability tuning settles atmosphere changes over 6 seconds and protects signal, trace, and landmark contrast in the darker dimensions without increasing visual density.
 - Debug information includes movement state, speed, vertical velocity, sprint/glide state, mouse status, current chunk, active chunks, active props, giant forms, far silhouettes, dream motes, current dimension, destination distance, composition type, and placement mode.
 
 ## Current browser/export status

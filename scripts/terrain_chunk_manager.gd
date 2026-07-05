@@ -196,7 +196,7 @@ func create_shared_resources() -> void:
 	trace_light_material.emission_energy_multiplier = 0.75
 	trace_memory_material = create_trace_material(Color(0.5, 0.39, 0.25), Color(0.34, 0.2, 0.08), 0.16)
 	trace_dust_material = create_trace_material(Color(0.36, 0.31, 0.25), Color(0.18, 0.12, 0.07), 0.06)
-	trace_dead_material = create_trace_material(Color(0.25, 0.29, 0.31), Color(0.08, 0.12, 0.15), 0.08)
+	trace_dead_material = create_trace_material(Color(0.28, 0.33, 0.36), Color(0.1, 0.16, 0.2), 0.12)
 	trace_liminal_material = create_trace_material(Color(0.075, 0.085, 0.12), Color(0.08, 0.12, 0.22), 0.2)
 	trace_liminal_light_material = create_trace_material(Color(0.2, 0.3, 0.48), Color(0.24, 0.42, 0.8), 0.5)
 	create_landmark_dimension_materials()
@@ -340,7 +340,7 @@ func create_landmark_dimension_materials() -> void:
 		&"cold_overcast": create_landmark_material_profile(
 			Color(0.17, 0.18, 0.19), Color(0.18, 0.22, 0.23),
 			Color(0.38, 0.42, 0.45), Color(0.12, 0.15, 0.18),
-			Color(0.42, 0.5, 0.58), Color(0.2, 0.34, 0.52), 0.25
+			Color(0.48, 0.56, 0.66), Color(0.24, 0.4, 0.62), 0.32
 		),
 		&"golden_dissolve": create_landmark_material_profile(
 			Color(0.38, 0.28, 0.18), Color(0.42, 0.43, 0.25),
@@ -348,8 +348,8 @@ func create_landmark_dimension_materials() -> void:
 			Color(0.76, 0.58, 0.3), Color(0.72, 0.42, 0.16), 0.38
 		),
 		&"blue_liminal_night": create_landmark_material_profile(
-			Color(0.08, 0.1, 0.14), Color(0.08, 0.13, 0.16),
-			Color(0.25, 0.32, 0.45), Color(0.07, 0.09, 0.15),
+			Color(0.08, 0.1, 0.14), Color(0.1, 0.17, 0.22),
+			Color(0.25, 0.32, 0.45), Color(0.1, 0.13, 0.22),
 			Color(0.42, 0.62, 0.92), Color(0.3, 0.52, 1.0), 0.75
 		),
 		&"dust_haze_afternoon": create_landmark_material_profile(
