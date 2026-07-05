@@ -32,12 +32,15 @@ signal dream_entered
 @export var pose_smoothing: float = 5.5
 
 @export_group("Procedural Visual Motion")
-@export_range(0.0, 0.12, 0.005) var run_bob_height: float = 0.035
-@export_range(0.0, 15.0, 0.5) var run_visual_lean_degrees: float = 7.0
-@export_range(15.0, 55.0, 1.0) var run_arm_swing_degrees: float = 38.0
-@export_range(15.0, 50.0, 1.0) var run_leg_swing_degrees: float = 34.0
-@export_range(3.0, 14.0, 0.25) var run_stride_length: float = 7.5
-@export_range(0.5, 1.5, 0.05) var locomotion_cycle_multiplier: float = 1.0
+@export_range(0.0, 0.6, 0.01) var bound_hop_height: float = 0.3
+@export_range(1.5, 4.0, 0.05) var bound_full_speed_footfalls_per_second: float = 2.9
+@export_range(0.2, 1.0, 0.05) var bound_min_cadence_factor: float = 0.45
+@export_range(0.0, 20.0, 1.0) var bound_body_pitch_degrees: float = 9.0
+@export_range(0.0, 18.0, 1.0) var bound_side_sway_degrees: float = 4.0
+@export_range(10.0, 65.0, 1.0) var bound_leg_drive_degrees: float = 46.0
+@export_range(5.0, 45.0, 1.0) var bound_trailing_leg_degrees: float = 24.0
+@export_range(5.0, 50.0, 1.0) var bound_arm_counter_degrees: float = 26.0
+@export_range(0.0, 0.25, 0.01) var bound_landing_squash: float = 0.08
 @export_range(20.0, 80.0, 1.0) var glide_arm_lift_degrees: float = 64.0
 @export_range(5.0, 45.0, 1.0) var glide_arm_open_degrees: float = 28.0
 @export_range(0.0, 25.0, 1.0) var glide_leg_trail_degrees: float = 14.0
@@ -358,37 +361,54 @@ func update_character_motion(delta: float) -> void:
 	var gliding: bool = is_gliding()
 	var run_blend: float = clampf(horizontal_speed / maxf(run_speed, 0.1), 0.0, 1.0)
 	if moving_on_ground:
-		motion_phase += (
-			delta * horizontal_speed / maxf(run_stride_length, 0.1)
-			* TAU * locomotion_cycle_multiplier
+		var cadence: float = lerpf(
+			bound_full_speed_footfalls_per_second * bound_min_cadence_factor,
+			bound_full_speed_footfalls_per_second,
+			run_blend
 		)
-	elif is_on_floor():
-		motion_phase += delta * 1.15
+		motion_phase = fmod(motion_phase + delta * cadence * TAU, TAU)
 
-	var motion_weight: float = (
-		run_blend
-		if moving_on_ground
-		else 0.0
+	var motion_weight: float = run_blend if moving_on_ground else 0.0
+	var hop_arc: float = absf(sin(motion_phase)) if moving_on_ground else 0.0
+	var contact_selector: float = signf(cos(motion_phase))
+	var leg_drive: float = deg_to_rad(bound_leg_drive_degrees) * motion_weight
+	var trailing_leg: float = deg_to_rad(bound_trailing_leg_degrees) * motion_weight
+	var left_leg_target: float = 0.0
+	var right_leg_target: float = 0.0
+	if moving_on_ground and contact_selector >= 0.0:
+		# Right support, left leg reaching into the next long dream-bound.
+		right_leg_target = trailing_leg * 0.25
+		left_leg_target = -leg_drive * hop_arc
+	elif moving_on_ground:
+		left_leg_target = trailing_leg * 0.25
+		right_leg_target = -leg_drive * hop_arc
+
+	var arm_counter_scale: float = (
+		deg_to_rad(bound_arm_counter_degrees)
+		/ maxf(deg_to_rad(bound_leg_drive_degrees), 0.001)
 	)
-	var arm_amplitude: float = deg_to_rad(run_arm_swing_degrees) * motion_weight
-	var leg_amplitude: float = deg_to_rad(run_leg_swing_degrees) * motion_weight
-	var target_arm_swing: float = sin(motion_phase) * arm_amplitude
-	var target_leg_swing: float = sin(motion_phase) * leg_amplitude
-	if not moving_on_ground:
-		target_arm_swing = 0.0
-		target_leg_swing = 0.0
-	var left_arm_target: float = target_arm_swing
-	var right_arm_target: float = -target_arm_swing
-	var left_leg_target: float = -target_leg_swing
-	var right_leg_target: float = target_leg_swing
+	var left_arm_target: float = -right_leg_target * arm_counter_scale
+	var right_arm_target: float = -left_leg_target * arm_counter_scale
 	var left_arm_open_target: float = deg_to_rad(-8.0)
 	var right_arm_open_target: float = deg_to_rad(8.0)
 
-	var target_bob: float = sin(motion_phase * 2.0) * run_bob_height * motion_weight
-	if not moving_on_ground:
-		target_bob = sin(motion_phase) * 0.012 if is_on_floor() else 0.0
-	var target_lean: float = -deg_to_rad(run_visual_lean_degrees) * run_blend
+	var target_bob: float = hop_arc * bound_hop_height * motion_weight
+	var target_lean: float = (
+		-deg_to_rad(bound_body_pitch_degrees) * run_blend
+		if moving_on_ground
+		else 0.0
+	)
+	var target_side_sway: float = (
+		sin(motion_phase) * deg_to_rad(bound_side_sway_degrees) * motion_weight
+		if moving_on_ground
+		else 0.0
+	)
+	var contact_strength: float = 1.0 - hop_arc if moving_on_ground else 0.0
 	var target_stretch: float = 1.0
+	var target_width: float = 1.0
+	if moving_on_ground:
+		target_stretch -= contact_strength * bound_landing_squash * motion_weight
+		target_width += contact_strength * 0.025 * motion_weight
 	if not is_on_floor() and not gliding:
 		target_lean = -deg_to_rad(4.0)
 		target_stretch = 1.025 if velocity.y > 0.0 else 1.0
@@ -406,8 +426,12 @@ func update_character_motion(delta: float) -> void:
 	motion_pivot.position.y = lerpf(motion_pivot.position.y, target_bob, weight)
 	motion_pivot.rotation.x = lerp_angle(motion_pivot.rotation.x, target_lean, weight)
 	motion_pivot.rotation.y = 0.0
-	motion_pivot.rotation.z = 0.0
-	motion_pivot.scale = motion_pivot.scale.lerp(Vector3(1.0, target_stretch, 1.0), weight)
+	motion_pivot.rotation.z = lerp_angle(
+		motion_pivot.rotation.z, target_side_sway, weight
+	)
+	motion_pivot.scale = motion_pivot.scale.lerp(
+		Vector3(target_width, target_stretch, target_width), weight
+	)
 	left_arm_pivot.rotation.x = lerp_angle(left_arm_pivot.rotation.x, left_arm_target, weight)
 	right_arm_pivot.rotation.x = lerp_angle(right_arm_pivot.rotation.x, right_arm_target, weight)
 	left_arm_pivot.rotation.z = lerp_angle(left_arm_pivot.rotation.z, left_arm_open_target, weight)
