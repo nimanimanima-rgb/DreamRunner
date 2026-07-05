@@ -19,25 +19,25 @@ func _ready() -> void:
 
 func apply_dimension_profile(dimension_id: StringName) -> void:
 	var warm_color := Color(1.0, 0.56, 0.18)
-	var bulb_energy: float = 0.55
-	var pool_alpha: float = 0.055
+	var bulb_energy: float = 0.75
+	var pool_alpha: float = 0.07
 	match dimension_id:
 		&"cold_overcast":
 			warm_color = Color(0.64, 0.57, 0.45)
-			bulb_energy = 0.16
-			pool_alpha = 0.018
+			bulb_energy = 0.28
+			pool_alpha = 0.03
 		&"golden_dissolve":
 			warm_color = Color(1.0, 0.58, 0.2)
-			bulb_energy = 1.35
-			pool_alpha = 0.1
+			bulb_energy = 1.7
+			pool_alpha = 0.13
 		&"blue_liminal_night":
 			warm_color = Color(1.0, 0.52, 0.16)
-			bulb_energy = 1.65
-			pool_alpha = 0.115
+			bulb_energy = 2.0
+			pool_alpha = 0.15
 		&"dust_haze_afternoon":
 			warm_color = Color(0.93, 0.52, 0.2)
-			bulb_energy = 0.9
-			pool_alpha = 0.07
+			bulb_energy = 1.2
+			pool_alpha = 0.1
 
 	bulb_material.albedo_color = warm_color
 	bulb_material.emission = warm_color

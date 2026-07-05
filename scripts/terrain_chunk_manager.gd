@@ -35,9 +35,11 @@ const LAMP_POST_SCENE: PackedScene = preload("res://scenes/props/LampPost.tscn")
 @export_range(0.8, 1.0, 0.01) var grass_minimum_normal_y: float = 0.94
 
 @export_group("Roadside Lamp Posts")
-@export_range(0.0, 0.6, 0.02) var lamp_post_chunk_chance: float = 0.28
-@export_range(20.0, 80.0, 2.0) var lamp_post_spacing: float = 42.0
-@export_range(0.8, 1.0, 0.01) var lamp_post_minimum_normal_y: float = 0.95
+@export_range(0.0, 0.85, 0.01) var lamp_post_chunk_chance: float = 0.68
+@export_range(20.0, 80.0, 2.0) var lamp_post_spacing: float = 34.0
+@export_range(0.8, 1.0, 0.01) var lamp_post_minimum_normal_y: float = 0.9
+@export var guarantee_intro_lamp: bool = true
+@export var intro_lamp_chunk: Vector2i = Vector2i(0, -1)
 
 @export_group("Passive Story Traces")
 @export var atmosphere_path: NodePath
@@ -672,15 +674,12 @@ func create_chunk_props(chunk: StaticBody3D, coordinate: Vector2i) -> Vector2i:
 			placed_positions.append(Vector2(trace_position.x, trace_position.z))
 			prop_count += 1
 
-	if random.randf() < lamp_post_chunk_chance:
-		var lamp_position := get_random_prop_position(random, coordinate, placed_positions)
-		var lamp_world_x: float = coordinate.x * chunk_size + lamp_position.x
-		var lamp_world_z: float = coordinate.y * chunk_size + lamp_position.z
-		if (
-			is_spawn_area_clear(coordinate, lamp_position)
-			and is_prop_spacing_clear(lamp_position, placed_positions, lamp_post_spacing)
-			and sample_surface_normal(lamp_world_x, lamp_world_z).y >= lamp_post_minimum_normal_y
-		):
+	var is_intro_lamp_chunk: bool = guarantee_intro_lamp and coordinate == intro_lamp_chunk
+	if is_intro_lamp_chunk or random.randf() < lamp_post_chunk_chance:
+		var lamp_position := find_lamp_post_position(
+			random, coordinate, placed_positions, is_intro_lamp_chunk
+		)
+		if lamp_position != Vector3.INF:
 			create_lamp_post(chunk, lamp_position, random)
 			placed_positions.append(Vector2(lamp_position.x, lamp_position.z))
 			prop_count += 1
@@ -746,6 +745,44 @@ func create_lamp_post(
 	lamp.set_meta("dimension_id", current_dimension_id)
 	chunk.add_child(lamp)
 	lamp_posts.append(lamp)
+
+
+func find_lamp_post_position(
+	random: RandomNumberGenerator,
+	coordinate: Vector2i,
+	placed_positions: Array[Vector2],
+	prefer_intro_corridor: bool
+) -> Vector3:
+	# Lamps deserve several cheap placement attempts. Favor open, gently raised
+	# ground near the chunk's travel corridor so their silhouettes survive grass,
+	# props, and valley lips without forcing them onto perfectly flat terrain.
+	var half_size: float = chunk_size * 0.5 - prop_border_margin
+	var best_position := Vector3.INF
+	var best_score: float = -INF
+	for _attempt in range(16):
+		var candidate := Vector3(
+			random.randf_range(-half_size, half_size),
+			0.0,
+			random.randf_range(-half_size, half_size)
+		)
+		var world_x: float = coordinate.x * chunk_size + candidate.x
+		var world_z: float = coordinate.y * chunk_size + candidate.z
+		candidate.y = sample_height(world_x, world_z)
+		if not is_spawn_area_clear(coordinate, candidate):
+			continue
+		if not is_prop_spacing_clear(candidate, placed_positions, lamp_post_spacing):
+			continue
+		var surface_normal := sample_surface_normal(world_x, world_z)
+		if surface_normal.y < lamp_post_minimum_normal_y:
+			continue
+		var corridor_score: float = -absf(candidate.x) * 0.018
+		if prefer_intro_corridor:
+			corridor_score -= absf(candidate.z - 24.0) * 0.025
+		var score: float = surface_normal.y * 18.0 + candidate.y * 0.12 + corridor_score
+		if score > best_score:
+			best_score = score
+			best_position = candidate
+	return best_position
 
 
 func build_roadside_shelter(trace: Node3D) -> void:
@@ -1845,6 +1882,10 @@ func get_active_chunk_count() -> int:
 
 func get_active_prop_count() -> int:
 	return active_prop_count
+
+
+func get_active_lamp_post_count() -> int:
+	return lamp_posts.size()
 
 
 func get_visible_story_trace_count() -> int:
