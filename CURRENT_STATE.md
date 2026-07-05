@@ -55,7 +55,7 @@ Dream signal placement is flow-first but no longer linear: a persistent journey 
 - Procedural ambience begins after the browser-safe entry click, responds subtly to dimension and movement, and can be muted with `M`.
 - Sound Design Pass 02 raises the shared mix by `+3 dB` (about 41% linear gain), gives signal resonance one additional dB of clarity, and differentiates dimensions through smoothly blended wind, air pressure, drone weight, and pitch.
 
-- Start overlay: "Click to enter dream" plus movement controls.
+- Start overlay: "Click to enter dream," a quiet signal-following prompt, and essential movement, mouse, dimension, pause, reset, and mute controls. Developer-only F3 help stays off the player-facing overlay.
 - Clicking captures the mouse and unlocks audio; `Esc` releases the mouse and pauses; clicking the overlay resumes and recaptures it.
 - Minimal normal-play hint: "Follow the dream signal".
 - Off-screen signal arrow and distance label, hidden when the signal is visible or the mouse is released.

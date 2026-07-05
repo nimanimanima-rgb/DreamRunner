@@ -253,7 +253,7 @@ theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.65)
 theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1
 theme_override_font_sizes/font_size = 17
-text = "Follow the dream signal"
+text = "Follow the distant signal"
 horizontal_alignment = 1
 
 [node name="SignalGuidance" type="CanvasLayer" parent="."]
@@ -345,6 +345,17 @@ theme_override_font_sizes/font_size = 24
 text = "Click to enter dream"
 horizontal_alignment = 1
 
+[node name="Framing" type="Label" parent="StartOverlay/CenterContainer/Message"]
+mouse_filter = 2
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72, 0.8, 0.9, 0.9)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.65)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 18
+text = "Follow the distant signal."
+horizontal_alignment = 1
+
 [node name="Controls" type="Label" parent="StartOverlay/CenterContainer/Message"]
 mouse_filter = 2
 layout_mode = 2
@@ -353,7 +364,8 @@ theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
 theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1
 theme_override_font_sizes/font_size = 16
-text = "WASD  move     Shift  sprint     Space  jump / glide
-R  reset     F3  debug     Q  shift dimension     M  mute
-Esc  release mouse / pause"
+text = "WASD  move     Mouse  look
+Shift  sprint     Space  jump / glide
+Q  shift dimension
+R  reset     M  mute     Esc  pause / release mouse"
 horizontal_alignment = 1
