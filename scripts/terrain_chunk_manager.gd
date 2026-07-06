@@ -88,6 +88,13 @@ const LAMP_POST_SCENE: PackedScene = preload("res://scenes/props/LampPost.tscn")
 @export_range(0.05, 0.6, 0.01) var giant_tree_chance: float = 0.25
 @export_range(0.0, 0.5, 0.01) var world_tree_chance: float = 0.18
 
+@export_group("Custom Tree Kit")
+@export_file("*.glb") var custom_tree_kit_path: String = (
+	"res://assets/models/trees/dream_tree_kit_01.glb"
+)
+@export_range(0.5, 2.0, 0.05) var custom_tree_scale_multiplier: float = 1.0
+@export_range(0.0, 0.2, 0.01) var custom_tree_scale_variation: float = 0.08
+
 @export_group("Stone Scale Tuning")
 @export_range(40.0, 120.0, 5.0) var min_pillar_height: float = 80.0
 @export_range(80.0, 180.0, 5.0) var max_pillar_height: float = 140.0
@@ -172,6 +179,17 @@ var giant_trunk_shape: CylinderShape3D
 var giant_pillar_shape: BoxShape3D
 var giant_monolith_shape: BoxShape3D
 
+const CUSTOM_TREE_VARIANT_NAMES: PackedStringArray = [
+	"DRT_Windswept_01_ROOT",
+	"DRT_TallThin_01_ROOT",
+	"DRT_Crooked_01_ROOT",
+	"DRT_DeadSparse_01_ROOT",
+	"DRT_SmallBushy_01_ROOT",
+]
+const PRIMITIVE_TREE_REFERENCE_HEIGHT: float = 5.7
+var custom_tree_kit_template: Node3D
+var custom_tree_variants: Array[Dictionary] = []
+
 var chunk_prop_counts: Dictionary = {}
 var chunk_giant_counts: Dictionary = {}
 var active_prop_count: int = 0
@@ -202,6 +220,12 @@ func _process(delta: float) -> void:
 
 	animation_time += delta
 	animate_world_life()
+
+
+func _exit_tree() -> void:
+	if custom_tree_kit_template != null:
+		custom_tree_kit_template.free()
+		custom_tree_kit_template = null
 
 
 func create_shared_resources() -> void:
@@ -370,6 +394,67 @@ func create_shared_resources() -> void:
 
 	giant_monolith_shape = BoxShape3D.new()
 	giant_monolith_shape.size = Vector3(14.0, 90.0, 9.0)
+	load_custom_tree_kit()
+
+
+func load_custom_tree_kit() -> void:
+	custom_tree_variants.clear()
+	if not ResourceLoader.exists(custom_tree_kit_path, "PackedScene"):
+		push_warning("Custom tree kit is unavailable; using primitive trees.")
+		return
+	var tree_kit_scene := ResourceLoader.load(custom_tree_kit_path, "PackedScene") as PackedScene
+	if tree_kit_scene == null:
+		push_warning("Custom tree kit did not load as a PackedScene; using primitive trees.")
+		return
+	custom_tree_kit_template = tree_kit_scene.instantiate() as Node3D
+	if custom_tree_kit_template == null:
+		push_warning("Custom tree kit root is not a Node3D; using primitive trees.")
+		return
+
+	for variant_name in CUSTOM_TREE_VARIANT_NAMES:
+		var variant := custom_tree_kit_template.find_child(variant_name, true, false) as Node3D
+		if variant == null:
+			custom_tree_variants.clear()
+			custom_tree_kit_template.free()
+			custom_tree_kit_template = null
+			push_warning("Custom tree variant %s is missing; using primitive trees." % variant_name)
+			return
+		var bounds := get_tree_variant_vertical_bounds(variant)
+		custom_tree_variants.append({
+			"template": variant,
+			"minimum_y": bounds.x,
+			"height": maxf(bounds.y - bounds.x, 0.01),
+		})
+
+
+func get_tree_variant_vertical_bounds(root: Node3D) -> Vector2:
+	var minimum_y := INF
+	var maximum_y := -INF
+	var pending: Array[Dictionary] = [{
+		"node": root,
+		"transform": Transform3D.IDENTITY,
+	}]
+	while not pending.is_empty():
+		var entry: Dictionary = pending.pop_back()
+		var current := entry["node"] as Node3D
+		var relative_transform: Transform3D = entry["transform"]
+		if current is MeshInstance3D:
+			var mesh_instance := current as MeshInstance3D
+			var mesh_bounds := mesh_instance.get_aabb()
+			for endpoint_index in range(8):
+				var point := relative_transform * mesh_bounds.get_endpoint(endpoint_index)
+				minimum_y = minf(minimum_y, point.y)
+				maximum_y = maxf(maximum_y, point.y)
+		for child in current.get_children():
+			var child_3d := child as Node3D
+			if child_3d != null:
+				pending.append({
+					"node": child_3d,
+					"transform": relative_transform * child_3d.transform,
+				})
+	if not is_finite(minimum_y) or not is_finite(maximum_y):
+		return Vector2(0.0, PRIMITIVE_TREE_REFERENCE_HEIGHT)
+	return Vector2(minimum_y, maximum_y)
 
 
 func create_grass_material(color: Color) -> StandardMaterial3D:
@@ -1777,7 +1862,53 @@ func create_tree(
 	# keeps individual trees from becoming stamped copies.
 	tree.rotation.y = random.randf_range(-0.2, 0.2)
 	tree.scale = Vector3.ONE * tree_scale
+	var using_custom_tree := create_custom_tree_visual(tree, random)
+	if not using_custom_tree:
+		create_primitive_tree_visual(tree, random)
+	chunk.add_child(tree)
 
+	var collision := CollisionShape3D.new()
+	collision.name = "TreeCollision_%d" % index
+	collision.position = base_position + Vector3(0.0, 1.6 * tree_scale, 0.0)
+	collision.shape = trunk_shape
+	collision.scale = Vector3.ONE * tree_scale
+	chunk.add_child(collision)
+
+
+func create_custom_tree_visual(tree: Node3D, random: RandomNumberGenerator) -> bool:
+	if custom_tree_variants.is_empty():
+		return false
+	var variant_index := random.randi_range(0, custom_tree_variants.size() - 1)
+	var variant_data: Dictionary = custom_tree_variants[variant_index]
+	var template := variant_data["template"] as Node3D
+	var visual := template.duplicate() as Node3D
+	if visual == null:
+		return false
+
+	visual.name = String(template.name)
+	visual.transform = Transform3D.IDENTITY
+	visual.rotation.y = random.randf_range(-PI, PI)
+	var variation := random.randf_range(
+		1.0 - custom_tree_scale_variation,
+		1.0 + custom_tree_scale_variation
+	)
+	var variant_height := float(variant_data["height"])
+	var kit_scale := (
+		PRIMITIVE_TREE_REFERENCE_HEIGHT
+		/ variant_height
+		* custom_tree_scale_multiplier
+		* variation
+	)
+	visual.scale = Vector3.ONE * kit_scale
+	# Normalize every authored variant to its measured lowest mesh point. The
+	# existing tree_ground_embed then provides the same reliable terrain footing
+	# used by the primitive fallback.
+	visual.position.y = -float(variant_data["minimum_y"]) * kit_scale
+	tree.add_child(visual)
+	return true
+
+
+func create_primitive_tree_visual(tree: Node3D, random: RandomNumberGenerator) -> void:
 	var trunk := MeshInstance3D.new()
 	trunk.name = "Trunk"
 	trunk.position = Vector3(0.0, 1.75, 0.0)
@@ -1829,19 +1960,11 @@ func create_tree(
 		random.randi_range(0, foliage_materials.size() - 1)
 	]
 	tree.add_child(side_foliage)
-	chunk.add_child(tree)
 	animated_foliage.append({
 		"node": foliage,
 		"phase": random.randf_range(0.0, TAU),
 		"strength": random.randf_range(0.018, 0.045),
 	})
-
-	var collision := CollisionShape3D.new()
-	collision.name = "TreeCollision_%d" % index
-	collision.position = base_position + Vector3(0.0, 1.6 * tree_scale, 0.0)
-	collision.shape = trunk_shape
-	collision.scale = Vector3.ONE * tree_scale
-	chunk.add_child(collision)
 
 
 func get_tree_scale(random: RandomNumberGenerator) -> float:
