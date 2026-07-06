@@ -107,13 +107,21 @@ const LAMP_POST_SCENE: PackedScene = preload("res://scenes/props/LampPost.tscn")
 @export_group("World Material Palette")
 @export var grass_color_a := Color(0.255, 0.3, 0.235)
 @export var grass_color_b := Color(0.34, 0.35, 0.27)
-@export var exposed_earth_color := Color(0.39, 0.335, 0.26)
-@export var highland_stone_color := Color(0.49, 0.49, 0.46)
+@export var exposed_earth_color := Color(0.4, 0.35, 0.24)
+@export var highland_stone_color := Color(0.396, 0.392, 0.369)
 @export var valley_tint := Color(0.22, 0.28, 0.285)
 @export var trunk_color := Color(0.255, 0.225, 0.19)
 @export var foliage_color := Color(0.255, 0.315, 0.255)
 @export var rock_color := Color(0.47, 0.465, 0.43)
 @export var landmark_color := Color(0.43, 0.455, 0.49)
+
+@export_group("Ground Detail Tuning")
+@export var dry_grass_color := Color(0.42, 0.43, 0.27)
+@export_range(0.0, 0.4, 0.01) var earth_patch_strength: float = 0.2
+@export_range(0.0, 0.3, 0.01) var dry_grass_patch_strength: float = 0.16
+@export_range(0.0, 0.15, 0.01) var ground_mottle_strength: float = 0.06
+@export_range(0.0, 1.0, 0.01) var valley_color_strength: float = 0.5
+@export_range(0.0, 1.0, 0.01) var slope_exposure_strength: float = 0.9
 
 @onready var player: CharacterBody3D = get_node(player_path)
 @onready var atmosphere: Node = get_node_or_null(atmosphere_path)
@@ -131,6 +139,8 @@ var current_chunk := Vector2i.ZERO
 var terrain_noise: FastNoiseLite
 var highland_mass_noise: FastNoiseLite
 var biome_color_noise: FastNoiseLite
+var earth_patch_noise: FastNoiseLite
+var ground_mottle_noise: FastNoiseLite
 var terrain_zero_offset: float = 0.0
 var highland_mass_zero_offset: float = 0.0
 var launch_region_noise: FastNoiseLite
@@ -250,6 +260,17 @@ func create_shared_resources() -> void:
 	biome_color_noise.seed = terrain_seed + 947
 	biome_color_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
 	biome_color_noise.frequency = 0.006
+	earth_patch_noise = FastNoiseLite.new()
+	earth_patch_noise.seed = terrain_seed + 1217
+	earth_patch_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	earth_patch_noise.frequency = 0.024
+	earth_patch_noise.fractal_type = FastNoiseLite.FRACTAL_FBM
+	earth_patch_noise.fractal_octaves = 2
+	earth_patch_noise.fractal_gain = 0.4
+	ground_mottle_noise = FastNoiseLite.new()
+	ground_mottle_noise.seed = terrain_seed + 1879
+	ground_mottle_noise.noise_type = FastNoiseLite.TYPE_VALUE_CUBIC
+	ground_mottle_noise.frequency = 0.13
 
 	launch_region_noise = FastNoiseLite.new()
 	launch_region_noise.seed = terrain_seed + 271
@@ -2220,16 +2241,36 @@ func get_terrain_vertex_color(
 	height: float,
 	normal: Vector3
 ) -> Color:
-	# Vertex color creates broad material regions with no textures or shader
-	# sampling. Valleys cool into haze while exposed slopes reveal earth/stone.
+	# Deterministic vertex colors create layered highland ground without textures
+	# or per-frame shader work: broad grass regions, earth/dry patches, fine
+	# mottling, cool valleys, then stronger earth-to-stone slope exposure.
 	var variation: float = biome_color_noise.get_noise_2d(world_x, world_z) * 0.5 + 0.5
 	var ground_color: Color = grass_color_a.lerp(grass_color_b, variation)
-	var valley_amount: float = clampf(inverse_lerp(1.0, -8.0, height), 0.0, 1.0)
-	ground_color = ground_color.lerp(valley_tint, valley_amount * 0.42)
-	var slope_amount: float = clampf(inverse_lerp(0.035, 0.22, 1.0 - normal.y), 0.0, 1.0)
-	var stone_amount: float = clampf(inverse_lerp(0.16, 0.36, 1.0 - normal.y), 0.0, 1.0)
+	var patch_value: float = earth_patch_noise.get_noise_2d(world_x, world_z) * 0.5 + 0.5
+	var earth_amount: float = smoothstep(0.62, 0.84, patch_value) * earth_patch_strength
+	var dry_amount: float = (
+		smoothstep(0.58, 0.82, 1.0 - patch_value)
+		* dry_grass_patch_strength
+	)
+	ground_color = ground_color.lerp(dry_grass_color, dry_amount)
+	ground_color = ground_color.lerp(exposed_earth_color, earth_amount)
+
+	var mottle: float = ground_mottle_noise.get_noise_2d(world_x, world_z)
+	var mottle_factor: float = 1.0 + mottle * ground_mottle_strength
+	ground_color = Color(
+		ground_color.r * mottle_factor,
+		ground_color.g * mottle_factor,
+		ground_color.b * mottle_factor,
+		1.0
+	)
+	var valley_amount: float = clampf(inverse_lerp(2.0, -10.0, height), 0.0, 1.0)
+	ground_color = ground_color.lerp(valley_tint, valley_amount * valley_color_strength)
+
+	var surface_slope: float = 1.0 - normal.y
+	var slope_amount: float = clampf(inverse_lerp(0.025, 0.2, surface_slope), 0.0, 1.0)
+	var stone_amount: float = clampf(inverse_lerp(0.13, 0.3, surface_slope), 0.0, 1.0)
 	var exposed_color: Color = exposed_earth_color.lerp(highland_stone_color, stone_amount)
-	return ground_color.lerp(exposed_color, slope_amount * 0.82)
+	return ground_color.lerp(exposed_color, slope_amount * slope_exposure_strength)
 
 
 func remove_chunk(coordinate: Vector2i) -> void:
