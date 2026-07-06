@@ -9,6 +9,7 @@
 [ext_resource type="Script" path="res://scripts/dream_signal_guidance.gd" id="7_guidance"]
 [ext_resource type="Script" path="res://scripts/audio_manager.gd" id="8_audio"]
 [ext_resource type="Script" path="res://scripts/dimension_transition_overlay.gd" id="9_dimension_transition"]
+[ext_resource type="Script" path="res://scripts/player_character_asset_loader.gd" id="10_character_loader"]
 
 [sub_resource type="StandardMaterial3D" id="PlayerMaterial"]
 albedo_color = Color(0.16, 0.22, 0.29, 1)
@@ -126,6 +127,9 @@ rotation = Vector3(0, 0, 0.045)
 position = Vector3(0, -0.34, 0)
 material_override = SubResource("PlayerMaterial")
 mesh = SubResource("PlayerLegMesh")
+
+[node name="CharacterAssetLoader" type="Node" parent="Player"]
+script = ExtResource("10_character_loader")
 
 [node name="PlayerCollision" type="CollisionShape3D" parent="Player"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
