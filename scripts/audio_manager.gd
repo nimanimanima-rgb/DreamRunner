@@ -3,9 +3,9 @@ extends Node
 @export var player_path: NodePath
 @export var atmosphere_path: NodePath
 @export var destination_manager_path: NodePath
-@export_range(0.0, 6.0, 0.5) var overall_gain_db: float = 3.0
-@export_range(-45.0, -8.0, 1.0) var ambience_volume_db: float = -27.0
-@export_range(-40.0, -6.0, 1.0) var signal_volume_db: float = -17.0
+@export_range(0.0, 16.0, 0.5) var overall_gain_db: float = 11.0
+@export_range(-45.0, -8.0, 1.0) var ambience_volume_db: float = -21.0
+@export_range(-40.0, -6.0, 1.0) var signal_volume_db: float = -10.0
 @export_range(0.0, 0.5, 0.01) var movement_wind_boost: float = 0.18
 @export_group("Revelation Bass")
 @export_range(32.0, 72.0, 1.0) var revelation_bass_frequency: float = 48.0
@@ -159,11 +159,10 @@ func fill_ambience_buffer() -> void:
 		drone_phase = fmod(drone_phase + TAU * current_drone_frequency / MIX_RATE, TAU)
 		var distant_tone: float = (sin(drone_phase) + sin(drone_phase * 0.503) * 0.28) * current_drone_level
 		var dimension_cue := get_dimension_transition_sample()
-		var sample: float = clampf(
-			soft_air * 0.42 + air_body * 0.16 + distant_tone + dimension_cue,
-			-0.75,
-			0.75
+		var sample: float = soft_limit(
+			soft_air * 0.42 + air_body * 0.16 + distant_tone + dimension_cue
 		)
+		sample = clampf(sample, -0.95, 0.95)
 		ambience_playback.push_frame(Vector2(sample * 0.96, sample))
 
 
@@ -228,8 +227,13 @@ func fill_signal_buffer() -> void:
 				signal_sample += 1
 
 		var bass_pulse: float = get_revelation_bass_sample()
-		var final_signal: float = clampf(resonance + bass_pulse, -0.85, 0.85)
+		var final_signal: float = soft_limit(resonance + bass_pulse)
+		final_signal = clampf(final_signal, -0.95, 0.95)
 		signal_playback.push_frame(Vector2(final_signal, final_signal * 0.94))
+
+
+func soft_limit(sample: float) -> float:
+	return tanh(sample * 1.15) / tanh(1.15)
 
 
 func get_revelation_bass_sample() -> float:
