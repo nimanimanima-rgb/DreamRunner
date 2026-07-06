@@ -17,3 +17,5 @@ exports/web/*
 # OS junk
 .DS_Store
 Thumbs.db
+
+.codex-temp/
