@@ -49,6 +49,10 @@ var target_signal_frequency: float = 176.0
 var target_air_body: float = 0.1
 var dimension_cue_samples_remaining: int = 0
 var dimension_cue_phase: float = 0.0
+var unlock_attempt_debug_printed: bool = false
+var unlock_success_debug_printed: bool = false
+var unlock_failed_debug_printed: bool = false
+var unlock_skipped_debug_printed: bool = false
 
 
 func _ready() -> void:
@@ -63,6 +67,8 @@ func _ready() -> void:
 
 
 func create_generator_streams() -> void:
+	configure_player_for_generator_stream(ambience_player)
+	configure_player_for_generator_stream(signal_player)
 	var ambience_stream := AudioStreamGenerator.new()
 	ambience_stream.mix_rate = MIX_RATE
 	ambience_stream.buffer_length = 0.35
@@ -75,9 +81,39 @@ func create_generator_streams() -> void:
 	signal_player.volume_db = signal_volume_db + overall_gain_db
 
 
+func configure_player_for_generator_stream(player_to_configure: AudioStreamPlayer) -> void:
+	# Web export can reject AudioStreamGenerator if an AudioStreamPlayer tries
+	# to play it through the sample playback path. Force streaming playback when
+	# the property exists, but keep this defensive for editor/version tolerance.
+	for property in player_to_configure.get_property_list():
+		if StringName(property.get("name", "")) == &"playback_type":
+			player_to_configure.set("playback_type", AudioServer.PLAYBACK_TYPE_STREAM)
+			return
+
+
+func ensure_generator_streams_ready() -> bool:
+	if ambience_player == null or signal_player == null:
+		if not unlock_skipped_debug_printed:
+			print("AudioManager: audio unlock skipped; player nodes are missing.")
+			unlock_skipped_debug_printed = true
+		return false
+	if not ambience_player.stream is AudioStreamGenerator:
+		create_generator_streams()
+	elif not signal_player.stream is AudioStreamGenerator:
+		create_generator_streams()
+	configure_player_for_generator_stream(ambience_player)
+	configure_player_for_generator_stream(signal_player)
+	return ambience_player.stream is AudioStreamGenerator
+
+
 func unlock_audio() -> void:
 	# This is called directly from the overlay click. Do not permanently short
 	# circuit retries: a browser may reject or suspend an earlier play request.
+	if not unlock_attempt_debug_printed:
+		print("AudioManager: audio unlock attempted.")
+		unlock_attempt_debug_printed = true
+	if not ensure_generator_streams_ready():
+		return
 	if not ambience_player.playing:
 		ambience_player.play()
 	ambience_player.stream_paused = audio_muted
@@ -85,6 +121,12 @@ func unlock_audio() -> void:
 	if playback != null:
 		ambience_playback = playback
 		audio_unlocked = true
+		if not unlock_success_debug_printed:
+			print("AudioManager: audio unlock succeeded.")
+			unlock_success_debug_printed = true
+	elif not unlock_failed_debug_printed:
+		print("AudioManager: audio unlock failed safely; gameplay can continue without audio.")
+		unlock_failed_debug_printed = true
 
 
 func _process(delta: float) -> void:
@@ -190,6 +232,8 @@ func get_dimension_transition_sample() -> float:
 func play_signal_resonance() -> void:
 	if not audio_unlocked or audio_muted:
 		return
+	if not ensure_generator_streams_ready():
+		return
 	signal_sample = 0
 	signal_active = true
 	signal_player.play()
@@ -198,6 +242,8 @@ func play_signal_resonance() -> void:
 
 func play_revelation_bass_pulse(_pulse_index: int) -> void:
 	if not audio_unlocked or audio_muted:
+		return
+	if not ensure_generator_streams_ready():
 		return
 	revelation_bass_sample = 0
 	revelation_bass_active = true
